@@ -1,0 +1,16 @@
+name: Set up
+description: Install the pinned toolchain, dependencies, and optionally Chromium.
+inputs:
+  browser:
+    description: Install Chromium for browser tests.
+    default: 'false'
+runs:
+  using: composite
+  steps:
+    - uses: voidzero-dev/setup-vp@2dec1e33f4ab2c6d5bce1b0c4607961bb1a3f7a1 # v1.12.0
+      with:
+        node-version-file: .node-version
+        cache: true
+    - run: vp exec playwright install --with-deps chromium
+      shell: bash
+      if: ${{ inputs.browser == 'true' }}

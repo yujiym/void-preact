@@ -8,7 +8,7 @@ import {
   readdirSync,
   writeFileSync,
 } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import manifest from "../../packages/preact/package.json" with { type: "json" };
 import upstream from "../../upstream.json" with { type: "json" };
 
@@ -73,5 +73,5 @@ The attached report.md and report.json record sampled React/Preact behavior, kno
 if (process.env.GITHUB_OUTPUT)
   appendFileSync(
     process.env.GITHUB_OUTPUT,
-    `tag=v${manifest.version}\ntarball=${join(output, name)}\n`,
+    `tag=v${manifest.version}\ntarball=${resolve(output, name)}\n`,
   );

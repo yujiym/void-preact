@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
@@ -17,11 +17,15 @@ test('release preparation retains the tested package and rejects invalid evidenc
     dirty: false,
     tarballSha256: createHash('sha256').update(content).digest('hex'),
   };
-  const run = () => spawnSync(process.execPath, [fileURLToPath(new URL('./prepare-release.ts', import.meta.url)), directory, join(directory, 'release')], {
+  const run = () => spawnSync(process.execPath, [fileURLToPath(new URL('./prepare-release.ts', import.meta.url)), directory, 'release'], {
+    cwd: directory,
     encoding: 'utf8',
     env: { ...process.env, GITHUB_SHA: 'release-commit', RELEASE_NOTES: 'Fixture release', GITHUB_OUTPUT: join(directory, 'outputs') },
   });
   try {
+    for (const file of ['README.md', '.node-version']) {
+      copyFileSync(fileURLToPath(new URL(`../../${file}`, import.meta.url)), join(directory, file));
+    }
     writeFileSync(join(directory, tarball), content);
     writeFileSync(join(directory, 'report.md'), 'Comparison fixture');
     for (const invalid of [
@@ -36,6 +40,11 @@ test('release preparation retains the tested package and rejects invalid evidenc
     writeFileSync(join(directory, 'report.json'), JSON.stringify({ passed: true, metadata }));
     const result = run();
     assert.equal(result.status, 0, result.stderr);
+    assert.equal(
+      readFileSync(join(directory, 'outputs'), 'utf8').split('\n').find((line) => line.startsWith('tarball=')),
+      `tarball=${join(directory, 'release', tarball)}`,
+      'npm must receive an absolute file path rather than a GitHub shorthand',
+    );
     assert.deepEqual(readFileSync(join(directory, 'release', tarball)), content);
     assert.equal(readFileSync(join(directory, 'release', 'SHA256SUMS'), 'utf8'), `${metadata.tarballSha256}  ${tarball}\n`);
     assert.match(readFileSync(join(directory, 'release', 'release-notes.md'), 'utf8'), /Fixture release/);

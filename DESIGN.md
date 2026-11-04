@@ -80,7 +80,11 @@ These are the choices forced by what Preact 11 does not have.
 - Preact runs effects above a suspended child at once, and sets no boundary state during hydration. `SettledSuspense` tracks the root boundary so navigation commits and `data-hydrated` wait for its content, as React's commit does.
 - On resume, Preact hydrates a `$s` range as if it held streamed content. A deferred shell is cut before any streamed content, so the range holds the fallback, and the real content would keep the fallback element's attributes. The adapter empties the range first on deferred pages.
 
-## CI
+## Automation
+
+Upstream sync runs weekly on Tuesday at 06:00 JST (Monday 21:00 UTC), or manually. It opens an update PR and dispatches the full CI, including the React/Preact comparison. Review and merge remain maintainer actions. GitHub must allow Actions to create pull requests.
+
+The manually dispatched npm publish workflow calls the shared CI with Windows enabled, then publishes the exact tested tarball from that same workflow run. It creates a version tag and GitHub release with compatibility details and evidence. npm trusted publishing and the GitHub `npm` environment must be configured first; see [release setup and procedure](#releasing). Updating the package version and reviewing compatibility changes remain maintainer actions.
 
 | Workflow | Job | What it proves |
 | --- | --- | --- |
@@ -93,7 +97,7 @@ These are the choices forced by what Preact 11 does not have.
 | `ci.yml` | `required` | Stable `CI required` check aggregating every selected job |
 | `npm-publish.yml` | `verify`, `publish` | Manual release from main; reusable CI with Windows, exact tested tarball publication, version tag and release evidence |
 
-Normal pull requests run Linux checks. PRs labeled `test: windows` and main pushes also run Windows build, typecheck, unit and integration checks. Adding or removing a label reruns CI; subsequent PR commits retain the label choice. Manual CI runs expose a `windows` option, disabled by default. Upstream-sync dispatches use the default Linux checks before review; their merged main commit receives Windows verification before publication.
+Normal pull requests run Linux checks. PRs labeled `test: windows` and main pushes also run Windows build, typecheck, unit and integration checks. Adding or removing a label reruns CI; subsequent PR commits retain the label choice. Manual CI runs expose a `windows` option, disabled by default. Packed-consumer and comparison tests run on Linux with Chromium. Upstream-sync dispatches use the default Linux checks before review; their merged main commit receives Windows verification before publication.
 
 ### Branch ruleset
 

@@ -4,7 +4,7 @@
 [![npm version](https://img.shields.io/npm/v/void-preact)](https://www.npmjs.com/package/void-preact)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Preact adapter for [Void](https://void.cloud), ported from `@void/react`. Build server-rendered pages with typed loaders, forms, layouts, and interactive islands. Use `class` in your JSX.
+[Preact](https://preactjs.com) adapter for [Void](https://void.cloud), ported from `@void/react`. Build server-rendered pages with typed loaders, forms, layouts, and interactive islands. Use `class` in your JSX.
 
 ## Setup
 

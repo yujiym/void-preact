@@ -1,31 +1,32 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
+import type { Page, Route } from 'playwright';
+import type { ComparisonCase, Observation } from './types.ts';
 
 const clientContract = 'test/pages-client-contract.ts';
 const islandContract = 'test/pages-island-contract.ts';
 const clientIntegration = 'packages/preact/test/integration/preact-pages-client.test.ts';
 
-async function open(page, base, path) {
+async function open(page: Page, base: string, path: string) {
   const response = await page.goto(new URL(path, base).href);
+  assert.ok(response);
   assert.equal(response.status(), 200);
   await page.locator('#app[data-hydrated="true"]').waitFor();
 }
 
-async function hasText(page, id, value) {
+async function hasText(page: Page, id: string, value: string) {
   await page.waitForFunction(({ id, value }) => {
     const element = document.querySelector(`[data-testid="${id}"]`);
     return element?.textContent?.trim() === value;
   }, { id, value });
-  assert.equal((await page.getByTestId(id).textContent()).trim(), value);
+  assert.equal((await page.getByTestId(id).textContent())?.trim(), value);
 }
 
-async function whileRequestHeld(page, trigger, observe) {
-  let release;
-  let intercepted;
-  const held = new Promise((resolve) => { release = resolve; });
-  const started = new Promise((resolve) => { intercepted = resolve; });
-  const handlers = [];
-  const handler = (route) => {
+async function whileRequestHeld<T extends Observation[string]>(page: Page, trigger: () => Promise<unknown>, observe: () => Promise<T>) {
+  const { promise: held, resolve: release } = Promise.withResolvers<void>();
+  const { promise: started, resolve: intercepted } = Promise.withResolvers<void>();
+  const handlers: Promise<void>[] = [];
+  const handler = (route: Route) => {
     const completed = (async () => {
       intercepted();
       await held;
@@ -48,7 +49,7 @@ async function whileRequestHeld(page, trigger, observe) {
   }
 }
 
-export const cases = [
+export const cases: ComparisonCase[] = [
   {
     id: 'ssr-without-javascript',
     title: 'Server HTML exposes loader data without executing JavaScript',
@@ -132,7 +133,7 @@ export const cases = [
       await hasText(page, 'form-pending', 'false');
       await hasText(page, 'saved-count', '1');
       await page.getByTestId('form-reset').click();
-      await page.waitForFunction(() => document.querySelector('#name').value === '');
+      await page.waitForFunction(() => document.querySelector<HTMLInputElement>('#name')?.value === '');
       await hasText(page, 'form-error', '');
       await page.reload();
       await page.locator('#app[data-hydrated="true"]').waitFor();
@@ -154,7 +155,9 @@ export const cases = [
       assert.match(html, /Comparison islands/);
       assert.match(html, /data-testid="island-left"/);
       assert.match(html, /data-testid="island-right"/);
-      assert.equal((await page.goto(new URL('/islands', base).href)).status(), 200);
+      const navigation = await page.goto(new URL('/islands', base).href);
+      assert.ok(navigation);
+      assert.equal(navigation.status(), 200);
       await page.waitForFunction(() => document.querySelectorAll('[data-island][data-hydrated="true"]').length === 2);
       await hasText(page, 'island-left', '0');
       await hasText(page, 'island-right', '0');
@@ -182,7 +185,7 @@ export const cases = [
       await open(page, base, '/deferred');
       await hasText(page, 'deferred-value', 'Deferred ready');
       await page.waitForFunction(() => {
-        const title = document.querySelector('[data-testid="deferred-title"]');
+        const title = document.querySelector<HTMLElement>('[data-testid="deferred-title"]');
         return title?.id && title.dataset.clientId === title.id;
       });
       assert.equal(await page.getByTestId('deferred-loading').count(), 0);
@@ -240,7 +243,8 @@ export const cases = [
       assert.ok((await context.cookies()).some((cookie) => cookie.httpOnly), 'signup must establish an HttpOnly session cookie');
       const signedIn = await request.get(profile);
       assert.equal(signedIn.status(), 200);
-      const user = await signedIn.json();
+      const user: unknown = await signedIn.json();
+      assert.ok(user && typeof user === 'object' && 'name' in user && 'email' in user);
       assert.equal(user.name, 'Comparison User');
       assert.ok(user.email === email, 'protected endpoint must identify the created account');
       await page.reload();
@@ -277,7 +281,7 @@ export const cases = [
       await hasText(page, 'native-completed', '1');
       await hasText(page, 'native-pending', 'false');
       const expected = adapter === 'react' ? '' : 'Submitted value';
-      await page.waitForFunction((expected) => document.querySelector('#uncontrolled').value === expected, expected);
+      await page.waitForFunction((expected) => document.querySelector<HTMLInputElement>('#uncontrolled')?.value === expected, expected);
       const value = await page.locator('#uncontrolled').inputValue();
       assert.equal(value, expected);
       return { inFlightPending: pending, completed: 1, value };
@@ -297,7 +301,7 @@ export const cases = [
         () => page.getByTestId('transition-start').click(),
         async () => {
           await hasText(page, 'transition-pending', String(expected));
-          return (await page.getByTestId('transition-pending').textContent()).trim() === 'true';
+          return (await page.getByTestId('transition-pending').textContent())?.trim() === 'true';
         });
       await hasText(page, 'transition-completed', '1');
       await hasText(page, 'transition-pending', 'false');

@@ -7,8 +7,8 @@
 ```
 upstream.json              pinned tag and SHA
 upstream/                  verbatim snapshot at that tag, never edited
-tools/port/config.mjs      every recorded difference from packages/react
-tools/port/run.mjs         sync, generate, check, report
+tools/port/config.ts      every recorded difference from packages/react
+tools/port/run.ts         sync, generate, check, report
 tools/port/overlay/        hand-owned files that replace generated ones
 tools/react-stub/          react and react-dom names for upstream tests
 packages/preact/src/       the adapter, same file names as packages/react/src
@@ -22,7 +22,7 @@ The tree has the shape of the upstream one, so upstream test files keep their re
 
 ## How a difference from upstream is recorded
 
-`tools/port/config.mjs` is the single place that says how this repo differs.
+`tools/port/config.ts` is the single place that says how this repo differs.
 
 | Field | Meaning | What enforces it |
 | --- | --- | --- |
@@ -115,10 +115,10 @@ pnpm build
 pnpm typecheck
 pnpm test
 pnpm test:integration
-node tools/ci/packed-consumer.mjs
+node tools/ci/packed-consumer.ts
 ```
 
-Review each changed handwritten source listed by `report` against its upstream counterpart. Classify new upstream source in `tools/port/config.mjs`. Fix stale test rewrites there and keep their reasons specific. Change replacement pages in `tools/port/overlay`, then regenerate. Update the README API table when an observable difference changes. Review the upstream snapshot diff as well as generated output before merging.
+Review each changed handwritten source listed by `report` against its upstream counterpart. Classify new upstream source in `tools/port/config.ts`. Fix stale test rewrites there and keep their reasons specific. Change replacement pages in `tools/port/overlay`, then regenerate. Update the README API table when an observable difference changes. Review the upstream snapshot diff as well as generated output before merging.
 
 The packed consumer checks SSR and Markdown frontmatter, hydrates native Preact hooks, and observes session changes through `auth.useSession()` imported from `void/client` in dev and preview. Its session endpoint is intercepted by Playwright. This proves the React auth client integration with Preact; it does not test an identity provider or a production login backend. In dev, it also edits a page and checks that HMR preserves hook state without reloading the document.
 
@@ -144,7 +144,7 @@ Create a matching `vVERSION` Git tag and GitHub release from the verified commit
 
 `examples/comparison/shared` is one canonical React-source app. `pnpm test:comparison` packs this adapter and prepares independent React and Preact apps outside the workspace. The Preact copy changes adapter imports and the form-status import; its React imports resolve through Preact compatibility aliases. Source hashes, actual dependency versions and paths, the upstream revision, and the packed tarball hash are recorded. No workspace React stub or shared node_modules tree is used.
 
-The executable case registries in `e2e/comparison.mjs` and `e2e/suspense.mjs` own assertions, related source-contract references, expected differences and API coverage labels. These are new sample scenarios related to the existing contracts, not unchanged executions of every upstream contract. Existing unit, integration and packed-consumer gates stay in place.
+The executable case registries in `e2e/comparison.ts` and `e2e/suspense.ts` own assertions, related source-contract references, expected differences and API coverage labels. These are new sample scenarios related to the existing contracts, not unchanged executions of every upstream contract. Existing unit, integration and packed-consumer gates stay in place.
 
 The report in `artifacts/comparison/report.md` and `report.json` classifies each scenario only after React and Preact run in both dev and preview. Equal successful observations are equivalent within that scenario. A declared difference must be observed on both sides and stays outside equivalence totals. Failed, missing or blocked required cells fail CI. Matching crashes are failures. Expected renderer diagnostics are recorded separately; only a case-specific exact React deferred-shell recovery diagnostic is accepted in the two deferred cases. Unexpected browser errors still fail. Export availability probes do not establish behavioral compatibility.
 
@@ -173,7 +173,13 @@ The private class and hooks are not public API. Generated islands call the narro
 
 1. Inspect changes to Preact suspension, unmount behavior and the renderer's SSR marker protocol. Update the internal adapter assumptions when necessary.
 2. In a candidate branch, change exact peer and dev versions together, including test stubs and the playground overlay. Install and regenerate the playground; do not publish or merge a wider support promise yet.
-3. Run `pnpm build`, `pnpm check:suspense`, `pnpm typecheck`, `pnpm test`, `pnpm test:comparison:unit`, `pnpm test:integration`, `node tools/ci/packed-consumer.mjs`, and `pnpm test:comparison`. Run `pnpm check:port` after integration restores temporary fixtures.
+3. Run `pnpm build`, `pnpm check:suspense`, `pnpm typecheck`, `pnpm test`, `pnpm test:comparison:unit`, `pnpm test:integration`, `node tools/ci/packed-consumer.ts`, and `pnpm test:comparison`. Run `pnpm check:port` after integration restores temporary fixtures.
 4. Require the React/Preact common E2E for first suspension, resolution, repeated suspension, nesting, pending navigation/unmount and SSR hydration. Review screen state, DOM attributes, IDs, runtime errors and stale updates. Do not replace these with method-existence tests.
 5. Only after all checks pass, record the verified pair here and merge/release the exact support change. Retain compatibility reports as evidence. The comparison CI job is required for every update.
 6. If Preact provides a public API that preserves the needed behavior, migrate to it and remove the private adapter and its contract-specific checks. Keep the user-observable regression cases.
+
+## Repository tooling language
+
+Handwritten E2E, comparison, CI and upstream-sync scripts use TypeScript and run directly with the pinned Node toolchain. `tsconfig.tools.json` checks them with strict types, type-only imports and erasable syntax; Node execution is paired with `tsc`, because native type stripping does not type-check. `pnpm typecheck` includes both the adapter and tooling.
+
+`tools/react-stub` stays JavaScript because it is loaded as a dependency named react/react-dom by several test environments, without a compilation step. Distribution `dist/*.mjs` remains generated JavaScript. Upstream snapshots and their generated fixture conventions remain faithful to upstream.

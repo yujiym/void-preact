@@ -37,7 +37,7 @@
     "build": "vp pack",
     "dev": "vp pack --watch",
     "typecheck": "tsc --noEmit",
-    "prepack": "node ../../tools/ci/prepare-package.mjs"
+    "prepack": "node ../../tools/ci/prepare-package.ts"
   },
   "dependencies": {
     "@preact/preset-vite": "^2.10.6",

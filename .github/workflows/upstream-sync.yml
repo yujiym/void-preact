@@ -37,7 +37,7 @@ jobs:
         run: |
           branch="upstream/$TAG"
           git ls-remote --exit-code origin "refs/heads/$branch" && exit 0
-          node tools/port/run.mjs sync "$TAG" | tee sync-report.txt
+          node tools/port/run.ts sync "$TAG" | tee sync-report.txt
           pnpm install --no-frozen-lockfile
           status=passing
           pnpm build && pnpm typecheck && pnpm test && pnpm test:integration || status=failing

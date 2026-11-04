@@ -4,16 +4,19 @@
 [![npm version](https://img.shields.io/npm/v/void-preact)](https://www.npmjs.com/package/void-preact)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Preact adapter for [Void](https://void.cloud), ported from `@void/react`. Build server-rendered pages with typed server loaders, forms, layouts, and interactive islands, and write `class` instead of `className`.
+Preact adapter for [Void](https://void.cloud), ported from `@void/react`. Build server-rendered pages with typed loaders, forms, layouts, and interactive islands. Use `class` in your JSX.
 
 ## Setup
 
+In a Void app using Vite 8, install the supported dependencies:
+
 ```sh
-pnpm add preact preact-render-to-string
-pnpm add -D void-preact void @babel/core
+pnpm add --save-exact preact@11.1.1 preact-render-to-string@6.8.2
+pnpm add -D --save-exact void-preact void@1.6.1 @babel/core@7.28.0
 ```
 
 ```ts
+// vite.config.ts
 import { voidPreact } from 'void-preact/plugin';
 import { defineConfig } from 'vite';
 import { voidPlugin } from 'void';
@@ -23,62 +26,64 @@ export default defineConfig({
 });
 ```
 
+Add these options to **`compilerOptions` in `tsconfig.json`**, keeping the app's existing configuration:
+
 ```json
-{ "compilerOptions": { "jsx": "react-jsx", "jsxImportSource": "preact" } }
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact"
+  }
+}
 ```
+
+Import Void components and hooks from `void-preact`. See the [Void Pages documentation](https://void.cloud/guide/pages-routing/overview) for loaders, routing, forms, and islands.
 
 ## API
 
-The API is the one in the [Void Pages documentation](https://void.cloud/guide/pages-routing/overview), imported from `void-preact`. `react` and `react-dom` imports resolve to `preact/compat`, so third-party React components work to the extent `preact/compat` supports them.
+`react` and `react-dom` imports resolve through `preact/compat`. Third-party React components depend on that compatibility layer's supported features. The table describes what this adapter provides and where app behavior differs.
 
-| API | Status | Notes |
+| API or behavior | Support | Result in void-preact |
 | --- | --- | --- |
-| `@void/react` runtime export names | Same | A test compares exported names with upstream. `voidReact` becomes `voidPreact`, and its `react` option becomes `preact`. |
-| `use`, `Suspense` | Available | Also exported from `void-preact`. |
-| `useFormStatus` | Available | Import it from `void-preact`, not `react-dom`. |
-| `<form action={fn}>` | Available | Uncontrolled fields do not reset after the action. |
-| `useTransition`, `startTransition` | Differs | Never pending. The callback runs at once. |
-| `useActionState`, `useOptimistic` | Missing | The build fails on the import. |
-| A page that suspends with no `<Suspense>` of its own | Differs | Renders nothing while it waits. React holds the previous page. |
-| Cancelling a suspended root by navigation | Differs | Preact recovers by replacing the parked boundary, resetting its layout state. Ordinary navigation preserves layout state. |
-| `onCaughtError` root option | Missing | Error boundaries still work. |
+| Void components and hooks, including `Link`, `Form`, `useForm`, and router hooks | Supported | Import them from `void-preact`. The upstream runtime export names are retained; the comparison exercises navigation, validation, server actions, and islands. |
+| `voidReact` plugin | Supported with rename | Use `voidPreact` from `void-preact/plugin`. Its preset option is named `preact` instead of `react`. |
+| `use`, `Suspense` | Supported | Also exported from `void-preact`. Deferred SSR and hydration are verified for the exact supported dependency pair. |
+| `useFormStatus` | Partial | Import the adapter's implementation from `void-preact`. It provides `pending`; React's other status fields are not implemented. |
+| `<form action={fn}>` | Partial | The function runs with `FormData`, and pending state is tracked. Uncontrolled inputs retain their values after success instead of resetting as in React. |
+| `useTransition`, `startTransition` | Different | The callback runs immediately and pending stays false. React's transition scheduling and async pending lifetime are not reproduced. |
+| `useActionState`, `useOptimistic` | Unsupported | No compatibility implementation is provided. Imports from aliased `react` fail at build time. |
+| Root suspension without a local `<Suspense>` | Different | The default root fallback is blank while waiting. React can retain the previous page. Use an explicit boundary to choose a local fallback. |
+| Navigating away from a suspended root | Different | Navigation recovers by replacing the parked boundary, resetting its layout state. React retains that state. Ordinary navigation preserves layout state in both. |
+| `onCaughtError` root option | Unsupported | This root callback is not provided. Component error boundaries still catch render errors. |
 
 ## Compatibility
 
-`void-preact` peers on one exact `void` version, because it imports adapter-facing Void entries that change between releases. Preact support is limited to the verified pair **preact 11.1.1 / preact-render-to-string 6.8.2**. Deferred hydration and navigation rely on a maintained internal Suspense adapter. See the [support contract and update procedure](docs/design.md#private-suspense-support-contract).
+Supported exact peers are **void 1.6.1**, **preact 11.1.1**, and **preact-render-to-string 6.8.2**. Vite 8 is required. Deferred hydration and navigation use a maintained private Suspense adapter; see the [support contract and update procedure](docs/design.md#private-suspense-support-contract).
 
 ## Versioning
 
-The npm package is named `void-preact`. Its version is independent of Void's version. The supported Void version is declared in `peerDependencies` and documented in this README.
-
-During 0.x development:
-
-- Patch releases contain backward-compatible fixes, including Preact-specific bugs and missed upstream behavior.
-- Minor releases add features, introduce breaking changes, or change the supported Void version. Release notes describe any required migration.
-
-From 1.0.0 onward, releases follow [Semantic Versioning](https://semver.org/): patch for backward-compatible fixes, minor for backward-compatible features, and major for breaking changes. Replacing a supported exact Void peer version requires a major release because consumers must update that dependency.
-
-Upstream updates are versioned according to their impact on consumers; their version numbers are not copied. Each release records its changes and supported Void version in `CHANGELOG.md`.
+`void-preact` has its own version, independent of Void. During 0.x, patches fix compatible behavior; minors may change APIs or supported peers. From 1.0, releases follow [Semantic Versioning](https://semver.org/). Release notes identify supported peers and migration steps.
 
 ## Development
 
-This repo follows `packages/react` in the Void monorepo. See [docs/design.md](docs/design.md) for the design, upstream updates, and release steps. CI summaries show the test totals for each run.
+Use the Node version in `.node-version`. Handwritten tooling and E2E use TypeScript, run directly in Node, and are included in strict typechecking. The React test stubs remain JavaScript dependency packages.
 
 ```sh
 pnpm install
-pnpm check:port        # generated files match the pinned upstream snapshot
 pnpm build
 pnpm typecheck
 pnpm test
 pnpm test:integration
-node tools/ci/packed-consumer.mjs
-pnpm test:comparison    # genuine installed React vs packed Preact, dev and preview
+node tools/ci/packed-consumer.ts
+pnpm test:comparison:unit
+pnpm test:comparison
+pnpm check:port
 ```
 
-Never edit `upstream/` or generated files. Change `tools/port/config.mjs`, then run `pnpm port generate`. To move to a new Void release, run `pnpm port sync <tag>`.
+The [comparison example](examples/comparison) runs one shared app against real installed React and packed Preact, in dev and preview. Both apps are installed outside the workspace so React cannot resolve to the test stubs. `artifacts/comparison/report.md` records equivalent sampled behavior, observed differences, unsupported exports, and unverified scope. Passing the sampled matrix does not establish complete React equivalence. CI retains reports and diagnostics and shows test totals in its summaries.
+
+This repo follows `packages/react` in Void. Change `tools/port/config.ts` or its overlays, then run `pnpm port generate`; generated files and `upstream/` are maintained by that tool. Run `pnpm port sync <tag>` for an upstream release. See [docs/design.md](docs/design.md) for the design, support conditions, update gates, and release procedure.
 
 ## License
 
 MIT. Derived from Void, copyright Cloudflare, Inc.
-
-The comparison example lives in [examples/comparison](examples/comparison). Its generated report at `artifacts/comparison/report.md` distinguishes equivalent sampled behavior, observed differences, unsupported exports, failures, and unverified scope. Both applications are installed outside this workspace so the React baseline cannot use the test stubs.

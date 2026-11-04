@@ -16,13 +16,13 @@ it('checks and removes stale generated files while preserving hand tests and ign
     const result = spawnSync('git', args, { cwd: dir, encoding: 'utf8' });
     expect(result.status, result.stderr).toBe(0);
   };
-  const run = (command: string) => spawnSync(process.execPath, ['tools/port/run.mjs', command], {
+  const run = (command: string) => spawnSync(process.execPath, ['tools/port/run.ts', command], {
     cwd: dir,
     encoding: 'utf8',
   });
 
   try {
-    write('tools/port/config.mjs', `export default ${JSON.stringify({
+    write('tools/port/config.ts', `export default ${JSON.stringify({
       generate: [
         ['test/', 'test/'],
         ['packages/react/test/', 'packages/preact/test/'],
@@ -31,7 +31,7 @@ it('checks and removes stale generated files while preserving hand tests and ign
       preserved: ['test/preact/', 'packages/preact/test/preact/'],
       rewrites: [], dropped: [], testRewrites: [], divergences: [], mechanical: [], ported: [],
     })};\n`);
-    copyFileSync(join(ROOT, 'tools/port/run.mjs'), join(dir, 'tools/port/run.mjs'));
+    copyFileSync(join(ROOT, 'tools/port/run.ts'), join(dir, 'tools/port/run.ts'));
     write('upstream.json', JSON.stringify({ tag: 'fixture' }));
     write('.gitignore', 'node_modules\ndist\n.void\n');
     write('upstream/test/deleted helper.ts');

@@ -1,10 +1,13 @@
+import type { JsonValue } from '../../e2e/types.ts';
+import type { CaseMetadata, PassedCell, ResultCell } from './types.ts';
+import { adapters, modes } from './report.ts';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { createReport } from './report.mjs';
+import { createReport } from './report.ts';
 
-const cases = [{ id: 'behavior', title: 'Shared behavior', expectation: 'equivalent', sourceContracts: [], covers: [] }];
+const cases: CaseMetadata[] = [{ id: 'behavior', title: 'Shared behavior', expectation: 'equivalent', sourceContracts: [], covers: [] }];
 const metadata = { node: process.version, revision: 'fixture' };
-const passed = (observation = { value: 1 }) => ['dev', 'preview'].flatMap((mode) => ['react', 'preact'].map((adapter) => ({ id: 'behavior', adapter, mode, status: 'passed', observation })));
+const passed = (observation: JsonValue = { value: 1 }): PassedCell[] => modes.flatMap((mode) => adapters.map((adapter): PassedCell => ({ id: 'behavior', adapter, mode, status: 'passed', observation })));
 
 test('equivalence needs all four successful observed cells', () => {
   const report = createReport({ cases, results: passed(), metadata });
@@ -17,7 +20,7 @@ test('missing cells remain unverified and fail the gate', () => {
   assert.equal(report.rows[0].status, 'unverified');
 });
 test('matching failures are not equivalence', () => {
-  const results = passed().map((cell) => ({ ...cell, status: 'failed', error: 'same crash' }));
+  const results: ResultCell[] = passed().map((cell) => ({ ...cell, status: 'failed', error: 'same crash' }));
   const report = createReport({ cases, results, metadata });
   assert.equal(report.passed, false);
   assert.equal(report.summary.failed, 1);
@@ -28,7 +31,7 @@ test('unexpectedly different successful observations fail', () => {
   assert.equal(createReport({ cases, results, metadata }).passed, false);
 });
 test('declared differences require actual different successful observations', () => {
-  const different = [{ ...cases[0], expectation: 'different', reason: 'documented behavior difference' }];
+  const different: CaseMetadata[] = [{ ...cases[0], expectation: 'different', reason: 'documented behavior difference' }];
   assert.equal(createReport({ cases: different, results: passed(), metadata }).passed, false);
   const results = passed().map((cell) => ({ ...cell, observation: { value: cell.adapter } }));
   const report = createReport({ cases: different, results, metadata });
@@ -47,7 +50,7 @@ test('setup failure cannot produce a passing comparison', () => {
 });
 
 test('support cannot promise untested ranges or mismatched development versions', async () => {
-  const { supportedVersions } = await import('./support.mjs');
+  const { supportedVersions } = await import('./support.ts');
   const manifest = { peerDependencies: { preact: '11.1.1', 'preact-render-to-string': '6.8.2' }, devDependencies: { preact: '11.1.1', 'preact-render-to-string': '6.8.2' }, exports: {} };
   assert.deepEqual(supportedVersions(manifest), manifest.peerDependencies);
   assert.throws(() => supportedVersions({ ...manifest, peerDependencies: { ...manifest.peerDependencies, preact: '^11.1.1' } }), /exact tested version/);
@@ -60,8 +63,8 @@ test('an empty registry cannot claim a passing comparison', () => {
 });
 
 test('private-Suspense maintenance coverage cannot silently disappear', async () => {
-  const { assertSuspenseCoverage } = await import('./support.mjs');
-  const { cases: suspense } = await import('../../e2e/suspense.mjs');
+  const { assertSuspenseCoverage } = await import('./support.ts');
+  const { cases: suspense } = await import('../../e2e/suspense.ts');
   assert.doesNotThrow(() => assertSuspenseCoverage(suspense));
   for (const scenario of suspense.filter((item) => item.id !== 'suspense-root-cancellation-layout-state')) {
     assert.throws(() => assertSuspenseCoverage(suspense.filter((item) => item !== scenario)), /Required private-Suspense behavior/);

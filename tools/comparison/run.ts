@@ -1,14 +1,17 @@
+import type { Browser } from 'playwright';
+import type { JsonValue } from '../../e2e/types.ts';
+import type { Metadata, ResultCell, Server } from './types.ts';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromium } from 'playwright';
-import { cases as commonCases } from '../../e2e/comparison.mjs';
-import { cases as suspenseCases } from '../../e2e/suspense.mjs';
-import { root, upstream, prepareConsumers, buildConsumer, startConsumer } from './consumer.mjs';
-import { modes, validateCases, createReport, markdown } from './report.mjs';
-import { assertSuspenseCoverage } from './support.mjs';
+import { cases as commonCases } from '../../e2e/comparison.ts';
+import { cases as suspenseCases } from '../../e2e/suspense.ts';
+import { root, upstream, prepareConsumers, buildConsumer, startConsumer } from './consumer.ts';
+import { modes, validateCases, createReport, markdown } from './report.ts';
+import { assertSuspenseCoverage } from './support.ts';
 
 const output = join(root, 'artifacts/comparison');
 const artifacts = join(output, new Date().toISOString().replaceAll(':', '-'));
@@ -16,8 +19,8 @@ mkdirSync(artifacts, { recursive: true });
 const cases = [...commonCases, ...suspenseCases];
 validateCases(cases);
 assertSuspenseCoverage(cases);
-const assertionFiles = ['e2e/comparison.mjs', 'e2e/suspense.mjs'];
-const metadata = {
+const assertionFiles = ['e2e/comparison.ts', 'e2e/suspense.ts'];
+const metadata: Metadata = {
   node: process.version,
   platform: process.platform,
   dirty: execFileSync('git', ['status', '--porcelain'], { cwd: root, encoding: 'utf8' }).trim().length > 0,
@@ -27,9 +30,9 @@ const metadata = {
   assertionFiles: assertionFiles.map((path) => ({ path, sha256: createHash('sha256').update(readFileSync(join(root, path))).digest('hex') })),
   sourceContracts: [...new Set(cases.flatMap((scenario) => scenario.sourceContracts))].map((path) => ({ path, sha256: createHash('sha256').update(readFileSync(join(root, path))).digest('hex') })),
 };
-const results = [];
-let setupError;
-let browser;
+const results: ResultCell[] = [];
+let setupError: string | undefined;
+let browser: Browser | undefined;
 try {
   const prepared = prepareConsumers(artifacts);
   Object.assign(metadata, prepared);
@@ -39,26 +42,26 @@ try {
     try {
       buildConsumer(consumer, artifacts);
       for (const mode of modes) {
-        let server;
+        let server: Server | undefined;
         try {
           server = await startConsumer(consumer, mode, artifacts);
           for (const scenario of cases) {
             const context = await browser.newContext();
             context.setDefaultTimeout(15_000);
             const page = await context.newPage();
-            const errors = [];
-            const expectedErrors = [];
-            const collect = (message) => {
+            const errors: string[] = [];
+            const expectedErrors: string[] = [];
+            const collect = (message: string) => {
               if ((scenario.allowedErrors ?? []).some((allowed) => message.includes(allowed)) || (scenario.expectedRecoverableErrors?.[consumer.adapter] ?? []).includes(message)) expectedErrors.push(message);
               else errors.push(message);
             };
-            page.on('pageerror', (error) => collect(error.message));
+            page.on('pageerror', (error) => collect(errorMessage(error)));
             page.on('console', (message) => { if (message.type() === 'error') collect(message.text()); });
-            let timeout;
+            let timeout: ReturnType<typeof setTimeout> | undefined;
             try {
               const observation = await Promise.race([
                 scenario.run({ page, context, request: context.request, base: server.base, adapter: consumer.adapter, mode, app: consumer.app }),
-                new Promise((_, reject) => { timeout = setTimeout(() => reject(new Error(`Case timeout: ${scenario.id}`)), 30_000); }),
+                new Promise<JsonValue>((_, reject) => { timeout = setTimeout(() => reject(new Error(`Case timeout: ${scenario.id}`)), 30_000); }),
               ]);
               assert.deepEqual(errors, [], 'Unexpected browser errors');
               results.push({ id: scenario.id, adapter: consumer.adapter, mode, status: 'passed', observation, expectedErrors, recoveryReason: scenario.recoveryReason });
@@ -66,8 +69,8 @@ try {
             } catch (error) {
               const screenshot = `${consumer.adapter}-${mode}-${scenario.id}.png`;
               await page.screenshot({ path: join(artifacts, screenshot) }).catch(() => {});
-              results.push({ id: scenario.id, adapter: consumer.adapter, mode, status: 'failed', error: error.message, errors, screenshot });
-              console.log(`FAIL ${consumer.adapter}/${mode} ${scenario.id}: ${error.message}`);
+              results.push({ id: scenario.id, adapter: consumer.adapter, mode, status: 'failed', error: errorMessage(error), errors, screenshot });
+              console.log(`FAIL ${consumer.adapter}/${mode} ${scenario.id}: ${errorMessage(error)}`);
             } finally {
               clearTimeout(timeout);
               await context.close();
@@ -75,18 +78,18 @@ try {
           }
         } catch (error) {
           for (const scenario of cases) {
-            if (!results.some((result) => result.id === scenario.id && result.adapter === consumer.adapter && result.mode === mode)) results.push({ id: scenario.id, adapter: consumer.adapter, mode, status: 'blocked', error: error.message });
+            if (!results.some((result) => result.id === scenario.id && result.adapter === consumer.adapter && result.mode === mode)) results.push({ id: scenario.id, adapter: consumer.adapter, mode, status: 'blocked', error: errorMessage(error) });
           }
         } finally {
           await server?.stop();
         }
       }
     } catch (error) {
-      for (const mode of modes) for (const scenario of cases) results.push({ id: scenario.id, adapter: consumer.adapter, mode, status: 'blocked', error: error.message });
+      for (const mode of modes) for (const scenario of cases) results.push({ id: scenario.id, adapter: consumer.adapter, mode, status: 'blocked', error: errorMessage(error) });
     }
   }
 } catch (error) {
-  setupError = error.message;
+  setupError = errorMessage(error);
 } finally {
   await browser?.close();
   const report = createReport({ cases, results, metadata, setupError });
@@ -97,4 +100,8 @@ try {
   console.log(JSON.stringify(report.summary));
   console.log(`Report: ${join(artifacts, 'report.md')}`);
   process.exitCode = report.passed ? 0 : 1;
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }

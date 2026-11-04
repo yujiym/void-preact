@@ -1,33 +1,37 @@
 import assert from 'node:assert/strict';
+import type { Page, Route } from 'playwright';
+import type { ComparisonCase, ComparisonContext } from './types.ts';
 
 const sourceContracts = [
   'test/pages-client-contract.ts',
   'packages/preact/test/integration/preact-pages-client.test.ts',
 ];
 
-async function open(page, base, path = '/suspense') {
-  assert.equal((await page.goto(new URL(path, base).href)).status(), 200);
+async function open(page: Page, base: string, path = '/suspense') {
+  const response = await page.goto(new URL(path, base).href);
+  assert.ok(response);
+  assert.equal(response.status(), 200);
   await page.locator('#app[data-hydrated="true"]').waitFor();
 }
 
-async function text(page, id, expected) {
+async function text(page: Page, id: string, expected: string) {
   await page.waitForFunction(({ id, expected }) =>
     document.querySelector(`[data-testid="${id}"]`)?.textContent?.trim() === expected,
   { id, expected });
-  assert.equal((await page.getByTestId(id).textContent()).trim(), expected);
+  assert.equal((await page.getByTestId(id).textContent())?.trim(), expected);
 }
 
-async function gates(page, labels) {
-  const active = new Set();
+async function gates(page: Page, labels: string[]) {
+  const active = new Set<Promise<void>>();
   const pending = new Map(labels.map((label) => {
-    let release;
-    let started;
-    const held = new Promise((resolve) => { release = resolve; });
-    const requested = new Promise((resolve) => { started = resolve; });
+    const { promise: held, resolve: release } = Promise.withResolvers<void>();
+    const { promise: requested, resolve: started } = Promise.withResolvers<void>();
     return [label, { release, started, held, requested }];
   }));
-  const handler = async (route) => {
-    const gate = pending.get(new URL(route.request().url()).searchParams.get('resource'));
+  const handler = async (route: Route) => {
+    const resource = new URL(route.request().url()).searchParams.get('resource');
+    assert.ok(resource);
+    const gate = pending.get(resource);
     assert.ok(gate, 'every resource request must have a gate');
     const completion = (async () => {
       gate.started();
@@ -43,14 +47,20 @@ async function gates(page, labels) {
   };
   await page.route('**/api/wait?resource=*', handler);
   return {
-    async requested(...labels) {
-      await Promise.all(labels.map((label) => pending.get(label).requested));
+    async requested(...labels: string[]) {
+      await Promise.all(labels.map((label) => {
+        const gate = pending.get(label);
+        assert.ok(gate, `resource ${label} must have a gate`);
+        return gate.requested;
+      }));
     },
-    async release(label) {
+    async release(label: string) {
       const finished = page.waitForEvent('requestfinished', {
         predicate: (request) => new URL(request.url()).searchParams.get('resource') === label,
       });
-      pending.get(label).release();
+      const gate = pending.get(label);
+      assert.ok(gate, `resource ${label} must have a gate`);
+      gate.release();
       await finished;
     },
     async close() {
@@ -61,7 +71,7 @@ async function gates(page, labels) {
   };
 }
 
-async function rootRecovery({ page, base, adapter }, observeLayout = false) {
+async function rootRecovery({ page, base, adapter }: ComparisonContext, observeLayout = false) {
   await open(page, base, '/');
   await page.evaluate(() => { window.__suspenseDocument = 'preserved'; });
   if (observeLayout) {
@@ -74,7 +84,7 @@ async function rootRecovery({ page, base, adapter }, observeLayout = false) {
   try {
     await page.getByTestId('suspend-root').click();
     await held.requested('root-pending');
-    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
     await page.goBack();
     await text(page, 'ssr-title', 'Comparison home');
     assert.equal(new URL(page.url()).pathname, '/');
@@ -97,7 +107,7 @@ async function rootRecovery({ page, base, adapter }, observeLayout = false) {
   }
 }
 
-export const cases = [
+export const cases: ComparisonCase[] = [
   {
     id: 'suspense-root-history-cancellation',
     title: 'History navigation recovers while the adapter root boundary is suspended',
@@ -212,11 +222,12 @@ export const cases = [
     covers: ['Suspense SSR', 'Suspense hydration', 'useId hydration', 'DOM attributes'],
     async run({ page, base }) {
       const response = await page.goto(new URL('/suspense', base).href);
+      assert.ok(response);
       assert.equal(response.status(), 200);
       const html = await response.text();
       const server = await page.evaluate((html) => {
         const document = new DOMParser().parseFromString(html, 'text/html');
-        const title = document.querySelector('[data-testid="suspense-title"]');
+        const title = document.querySelector<HTMLElement>('[data-testid="suspense-title"]');
         const section = document.querySelector('[data-testid="suspense-page"]');
         return {
           id: title?.id,
@@ -232,7 +243,7 @@ export const cases = [
       const serverId = server.id;
       await page.locator('#app[data-hydrated="true"]').waitFor();
       await page.waitForFunction(() => {
-        const title = document.querySelector('[data-testid="suspense-title"]');
+        const title = document.querySelector<HTMLElement>('[data-testid="suspense-title"]');
         return title?.id && title.dataset.clientId === title.id;
       });
       assert.equal(await page.getByTestId('suspense-title').getAttribute('id'), serverId);
@@ -242,7 +253,7 @@ export const cases = [
       await open(page, base, '/deferred');
       await text(page, 'deferred-value', 'Deferred ready');
       await page.waitForFunction(() => {
-        const title = document.querySelector('[data-testid="deferred-title"]');
+        const title = document.querySelector<HTMLElement>('[data-testid="deferred-title"]');
         return title?.id && title.dataset.clientId === title.id;
       });
       assert.equal(await page.getByTestId('deferred-loading').count(), 0);

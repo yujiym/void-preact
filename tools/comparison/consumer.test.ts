@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { mkdirSync, mkdtempSync, writeFileSync, chmodSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, delimiter } from 'node:path';
-import { startConsumer } from './consumer.mjs';
+import { startConsumer } from './consumer.ts';
 
 test('stop terminates an HTTP descendant even after its launch process exits', { timeout: 15_000 }, async () => {
   const directory = mkdtempSync(join(tmpdir(), 'void-comparison-cleanup-'));
@@ -23,9 +23,9 @@ setInterval(() => {}, 1000);
   chmodSync(launcher, 0o755);
   const originalPath = process.env.PATH;
   process.env.PATH = `${bin}${delimiter}${originalPath}`;
-  let server;
+  let server: Awaited<ReturnType<typeof startConsumer>> | undefined;
   try {
-    server = await startConsumer({ adapter: 'fixture', app: directory, runId: 'cleanup-fixture' }, 'dev', directory);
+    server = await startConsumer({ adapter: 'preact', app: directory, runId: 'cleanup-fixture' }, 'dev', directory);
     assert.equal((await fetch(`${server.base}/api/comparison-run`)).status, 200);
     await server.stop();
     await assert.rejects(fetch(`${server.base}/api/comparison-run`, { signal: AbortSignal.timeout(500) }));

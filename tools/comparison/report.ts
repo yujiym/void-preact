@@ -1,7 +1,9 @@
+import type { Adapter, Mode } from '../../e2e/types.ts';
+import type { CaseMetadata, Metadata, ResultCell, RowStatus } from './types.ts';
 import { isDeepStrictEqual } from 'node:util';
 
-export const modes = ['dev', 'preview'];
-export const adapters = ['react', 'preact'];
+export const modes: Mode[] = ['dev', 'preview'];
+export const adapters: Adapter[] = ['react', 'preact'];
 export const unverified = [
   'All React APIs and third-party React libraries',
   'Native preact/hooks imports in this shared React-source example (covered separately by packed-consumer)',
@@ -11,9 +13,9 @@ export const unverified = [
   'Complete TypeScript API/overload equivalence, accessibility, and performance',
 ];
 
-export function validateCases(cases) {
+export function validateCases(cases: CaseMetadata[]) {
   if (!cases.length) throw new Error('Comparison registry must not be empty');
-  const ids = new Set();
+  const ids = new Set<string>();
   for (const scenario of cases) {
     if (!scenario.id || ids.has(scenario.id)) throw new Error(`Duplicate or missing case id: ${scenario.id}`);
     ids.add(scenario.id);
@@ -23,10 +25,10 @@ export function validateCases(cases) {
   }
 }
 
-export function createReport({ cases, results, metadata, setupError }) {
+export function createReport({ cases, results, metadata, setupError }: { cases: CaseMetadata[]; results: ResultCell[]; metadata: Metadata; setupError?: string }) {
   validateCases(cases);
   const knownIds = new Set(cases.map(({ id }) => id));
-  const cells = new Map();
+  const cells = new Map<string, ResultCell>();
   for (const cell of results) {
     if (!knownIds.has(cell.id) || !adapters.includes(cell.adapter) || !modes.includes(cell.mode)) throw new Error(`Unknown result cell: ${JSON.stringify(cell)}`);
     if (!['passed', 'failed', 'blocked'].includes(cell.status)) throw new Error(`Invalid result status: ${cell.status}`);
@@ -35,15 +37,16 @@ export function createReport({ cases, results, metadata, setupError }) {
     cells.set(key, cell);
   }
   const rows = cases.map((scenario) => {
-    const observations = [];
-    let status = scenario.expectation;
+    const observations: ResultCell[] = [];
+    let status: RowStatus = scenario.expectation;
     let detail = scenario.reason ?? '';
     for (const mode of modes) {
-      const pair = adapters.map((adapter) => cells.get(`${scenario.id}/${adapter}/${mode}`) ?? { id: scenario.id, adapter, mode, status: 'blocked', error: setupError ?? 'Required cell was not executed' });
+      const cellFor = (adapter: Adapter): ResultCell => cells.get(`${scenario.id}/${adapter}/${mode}`) ?? { id: scenario.id, adapter, mode, status: 'blocked', error: setupError ?? 'Required cell was not executed' };
+      const pair: [ResultCell, ResultCell] = [cellFor('react'), cellFor('preact')];
       observations.push(...pair);
       if (pair.some((cell) => cell.status === 'failed')) status = 'failed';
       else if (pair.some((cell) => cell.status !== 'passed') && status !== 'failed') status = 'unverified';
-      else if (pair.every((cell) => cell.status === 'passed')) {
+      else if (pair[0].status === 'passed' && pair[1].status === 'passed') {
         const equal = isDeepStrictEqual(pair[0].observation, pair[1].observation);
         if (equal !== (scenario.expectation === 'equivalent')) {
           status = 'failed';
@@ -70,13 +73,18 @@ export function createReport({ cases, results, metadata, setupError }) {
     apiAvailability,
     ...(setupError ? { setupError } : {}),
     passed: !setupError && rows.every((row) => ['equivalent', 'different'].includes(row.status)),
-    summary: Object.fromEntries(['equivalent', 'different', 'failed', 'unverified'].map((status) => [status, rows.filter((row) => row.status === status).length])),
+    summary: {
+      equivalent: rows.filter((row) => row.status === 'equivalent').length,
+      different: rows.filter((row) => row.status === 'different').length,
+      failed: rows.filter((row) => row.status === 'failed').length,
+      unverified: rows.filter((row) => row.status === 'unverified').length,
+    },
     rows,
   };
 }
 
-const escape = (value) => String(value).replaceAll('|', '\\|').replaceAll('\n', ' ');
-export function markdown(report) {
+const escape = (value: unknown) => String(value).replaceAll('|', '\\|').replaceAll('\n', ' ');
+export function markdown(report: ReturnType<typeof createReport>) {
   const lines = [
     '# Void adapter behavior comparison', '',
     `Gate: **${report.passed ? 'PASSED' : 'FAILED'}**. Chromium, dev and production preview.`, '',
@@ -85,7 +93,7 @@ export function markdown(report) {
     '| --- | --- | --- | --- | --- | --- |',
   ];
   for (const row of report.rows) {
-    const statuses = modes.flatMap((mode) => adapters.map((adapter) => row.observations.find((cell) => cell.adapter === adapter && cell.mode === mode).status));
+    const statuses = modes.flatMap((mode) => adapters.map((adapter) => row.observations.find((cell) => cell.adapter === adapter && cell.mode === mode)?.status ?? 'blocked'));
     lines.push(`| ${escape(row.title)} | ${row.status} | ${statuses.join(' | ')} |`);
   }
   lines.push('', '## Observed differences', '');
@@ -94,13 +102,13 @@ export function markdown(report) {
   for (const api of report.apiAvailability) lines.push(`| ${api.name} | ${api.react ?? 'unverified'} | ${api.preact ?? 'unverified'} | ${api.status} |`);
   lines.push('', 'Availability probes check exports, not full behavior. They are not included in equivalent scenario totals.', '', '## Expected renderer diagnostics', '');
   for (const row of report.rows) for (const cell of row.observations) {
-    if (cell.expectedErrors?.length) lines.push(`- ${row.id}, ${cell.adapter}/${cell.mode}: ${escape(cell.recoveryReason ?? 'Intentional error-boundary exercise')} (${cell.expectedErrors.length} diagnostic(s)).`);
+    if (cell.status === 'passed' && cell.expectedErrors?.length) lines.push(`- ${row.id}, ${cell.adapter}/${cell.mode}: ${escape(cell.recoveryReason ?? 'Intentional error-boundary exercise')} (${cell.expectedErrors.length} diagnostic(s)).`);
   }
   lines.push('', '## Failures and missing evidence', '');
   if (report.setupError) lines.push(`- Setup: ${escape(report.setupError)}`);
   for (const row of report.rows.filter((row) => ['failed', 'unverified'].includes(row.status))) {
     lines.push(`- ${row.id}: ${escape(row.detail)}`);
-    for (const cell of row.observations.filter((cell) => cell.status !== 'passed')) lines.push(`  - ${cell.adapter}/${cell.mode}: ${escape(cell.error ?? cell.status)}`);
+    for (const cell of row.observations.filter((cell) => cell.status !== 'passed')) lines.push(`  - ${cell.adapter}/${cell.mode}: ${escape(cell.error)}`);
   }
   lines.push('', '## Unverified scope', '', ...report.scope.unverified.map((item) => `- ${item}`), '', '## Provenance', '', `- Node: ${escape(report.metadata.node)}`, `- Source revision: ${escape(report.metadata.revision)}`, `- Upstream: ${escape(report.metadata.upstream?.tag)} (${escape(report.metadata.upstream?.sha)})`, `- Preact tarball SHA-256: ${escape(report.metadata.tarballSha256 ?? 'not prepared')}`, '', 'See report.json for resolved package versions/paths, source hashes, assertion files and observations.', '');
   return lines.join('\n');

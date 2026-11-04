@@ -1,8 +1,14 @@
-export function supportedVersions(manifest) {
-  const versions = {};
-  for (const name of ['preact', 'preact-render-to-string']) {
+import type { CaseMetadata } from './types.ts';
+
+type SupportedPackage = 'preact' | 'preact-render-to-string';
+type SupportManifest = { peerDependencies?: Partial<Record<SupportedPackage, string>>; devDependencies?: Partial<Record<SupportedPackage, string>>; exports?: Record<string, unknown> };
+
+export function supportedVersions(manifest: SupportManifest) {
+  const versions: Partial<Record<SupportedPackage, string>> = {};
+  const names: SupportedPackage[] = ['preact', 'preact-render-to-string'];
+  for (const name of names) {
     const version = manifest.peerDependencies?.[name];
-    if (!/^\d+\.\d+\.\d+$/.test(version ?? '') || manifest.devDependencies?.[name] !== version) {
+    if (typeof version !== 'string' || !/^\d+\.\d+\.\d+$/.test(version) || manifest.devDependencies?.[name] !== version) {
       throw new Error(`${name} peer and dev versions must be the same exact tested version; run the comparison E2E before expanding support`);
     }
     versions[name] = version;
@@ -13,7 +19,7 @@ export function supportedVersions(manifest) {
   return versions;
 }
 
-export function assertSuspenseCoverage(cases) {
+export function assertSuspenseCoverage(cases: CaseMetadata[]) {
   const covered = new Set(cases.flatMap((scenario) => scenario.covers));
   for (const required of [
     'Suspense first suspension', 'use promise resolution', 'Suspense repeated suspension',

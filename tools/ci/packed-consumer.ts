@@ -6,11 +6,14 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { chromium } from 'playwright';
 import { randomBytes } from 'node:crypto';
+import manifest from '../../packages/preact/package.json' with { type: 'json' };
+
+declare global { interface Window { hmrMarker?: string; } }
+type ReadPage = (path: string) => Promise<string>;
 
 const ROOT = join(import.meta.dirname, '..', '..');
 const app = mkdtempSync(join(tmpdir(), 'void-preact-consumer-'));
-const manifest = JSON.parse(readFileSync(join(ROOT, 'packages/preact/package.json'), 'utf8'));
-const run = (command, args, cwd = app) => execFileSync(command, args, { cwd, stdio: 'inherit' });
+const run = (command: string, args: string[], cwd = app) => execFileSync(command, args, { cwd, stdio: 'inherit' });
 
 run('pnpm', ['--filter', 'void-preact', 'pack', '--pack-destination', app], ROOT);
 const tarball = `file:./void-preact-${manifest.version}.tgz`;
@@ -88,7 +91,7 @@ writeFileSync(join(app, '.env'), 'BETTER_AUTH_SECRET=' + randomBytes(32).toStrin
 run('pnpm', ['install']);
 run('pnpm', ['exec', 'vite', 'build']);
 
-async function serve(args, check) {
+async function serve(args: string[], check: (read: ReadPage) => Promise<void>) {
   const port = 4780;
   const server = spawn('pnpm', ['exec', 'vite', ...args, '--port', String(port), '--strictPort'], {
     cwd: app,
@@ -105,16 +108,16 @@ async function serve(args, check) {
       );
     }
     assert.ok(ready, `vite ${args.join(' ')} answered`);
-    const read = (path) =>
+    const read: ReadPage = (path) =>
       fetch(`http://localhost:${port}${path}`).then((response) => response.text());
     await check(read);
   } finally {
-    process.kill(-server.pid);
+    if (server.pid !== undefined) process.kill(-server.pid);
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
 }
 
-async function assertPages(read) {
+async function assertPages(read: ReadPage) {
   assert.match(await read('/'), /<main class="home"><h1>hello from loader<\/h1>/, 'loader data is server rendered');
   assert.match(await read('/'), /__VOID_PAGE_DATA__/, 'page data is embedded for hydration');
   const markdown = await read('/about');
@@ -128,7 +131,7 @@ try {
     await serve([mode], async (read) => {
       await assertPages(read);
       const page = await browser.newPage();
-      const errors = [];
+      const errors: string[] = [];
       page.on('pageerror', (error) => errors.push(error.message));
       let signedIn = false;
       await page.route('**/api/auth/get-session**', (route) => route.fulfill({

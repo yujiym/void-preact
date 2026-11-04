@@ -1,5 +1,19 @@
+export interface PortConfig {
+  repo: string;
+  snapshot: string[];
+  rewrites: [string | RegExp, string][];
+  generate: [string, string][];
+  preserved: string[];
+  sourceRewrites: [string | RegExp, string][];
+  mechanical: string[];
+  ported: string[];
+  dropped: string[];
+  testRewrites: { file: string; from: string; to: string; reason: string }[];
+  divergences: { file: string; title: string; reason: string }[];
+}
+
 // Everything that says how this repo differs from packages/react lives here.
-export default {
+const config: PortConfig = {
   repo: 'https://github.com/voidzero-dev/void.git',
 
   // Copied verbatim into upstream/ at the pinned tag.
@@ -174,3 +188,5 @@ export default {
     },
   ],
 };
+
+export default config;

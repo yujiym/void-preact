@@ -12,7 +12,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { createRoot, type Root, type RootOptions } from 'react-dom/client';
+import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { VoidActionError, type VoidRouter } from 'void/pages-client';
 import { RouterContext } from '../../src/runtime/context.ts';
@@ -70,10 +70,10 @@ function routerWithVisit(visit: VoidRouter['visit']): VoidRouter {
   };
 }
 
-async function mountApp(app: ReactNode, options?: RootOptions) {
+async function mountApp(app: ReactNode) {
   const container = document.createElement('div');
   document.body.append(container);
-  const root = createRoot(container, options);
+  const root = createRoot(container);
   mountedRoots.push({ root, container });
   await act(async () => {
     root.render(createElement(StrictMode, null, app));
@@ -90,7 +90,7 @@ async function mountForm(visit: VoidRouter['visit'], options?: FormOptions) {
     return createElement('div', null, form.errors.title || (form.pending ? 'Pending' : 'Ready'));
   }
   const container = await mountApp(
-    createElement(RouterContext.Provider, { value: router }, createElement(App)),
+    createElement(RouterContext.Provider, { value: router }, createElement(App, null)),
   );
   if (!formRef.current) {
     throw new Error('useForm did not mount.');
@@ -252,7 +252,7 @@ describe('useForm callbacks', () => {
         createElement(
           RouterContext.Provider,
           { value: routerWithVisit(() => visit.promise) },
-          createElement(App),
+          createElement(App, null),
         ),
       );
       await act(async () => {
@@ -278,7 +278,6 @@ describe('useForm callbacks', () => {
     'routes async %s callback failures to the React error boundary',
     async (outcome) => {
       const failure = new Error('Callback failed');
-      const onCaughtError = vi.fn();
       const callback = vi.fn(async () => {
         throw failure;
       });
@@ -308,9 +307,8 @@ describe('useForm callbacks', () => {
         createElement(
           RouterContext.Provider,
           { value: router },
-          createElement(Boundary, null, createElement(App)),
+          createElement(Boundary, null, createElement(App, null)),
         ),
-        { onCaughtError },
       );
       await act(async () => {
         startTransition(() => {

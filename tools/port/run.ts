@@ -2,8 +2,10 @@
 import { execFileSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join, relative } from 'node:path';
+import { dirname, join, relative as nativeRelative } from 'node:path';
 import config from './config.ts';
+
+const relative = (from: string, to: string) => nativeRelative(from, to).replaceAll('\\', '/');
 
 const ROOT = join(import.meta.dirname, '..', '..');
 const UPSTREAM = join(ROOT, 'upstream');
@@ -47,6 +49,7 @@ function applyDivergences(path: string, text: string): string {
 /** Every generated file, keyed by repo path. Overlay files replace generated ones. */
 function expectedFiles() {
   const files = new Map<string, string | Buffer>();
+  files.set('.node-version', readFileSync(join(UPSTREAM, '.node-version'), 'utf8'));
   for (const [from, to] of config.generate) {
     for (const abs of walk(join(UPSTREAM, from))) {
       const rel = relative(join(UPSTREAM, from), abs);

@@ -9,6 +9,10 @@ on:
         description: Upstream tag. Defaults to the latest void release.
         required: false
 
+concurrency:
+  group: upstream-sync
+  cancel-in-progress: false
+
 permissions:
   contents: write
   pull-requests: write
@@ -20,8 +24,6 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
-        with:
-          browser: 'true'
       - id: target
         env:
           REQUESTED: ${{ inputs.tag }}
@@ -38,9 +40,18 @@ jobs:
           branch="upstream/$TAG"
           git ls-remote --exit-code origin "refs/heads/$branch" && exit 0
           node tools/port/run.ts sync "$TAG" | tee sync-report.txt
+      - if: steps.target.outputs.changed == 'true'
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+      - if: steps.target.outputs.changed == 'true'
+        env:
+          TAG: ${{ steps.target.outputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          branch="upstream/$TAG"
+          git ls-remote --exit-code origin "refs/heads/$branch" && exit 0
           pnpm install --no-frozen-lockfile
-          status=passing
-          pnpm build && pnpm typecheck && pnpm test && pnpm test:integration || status=failing
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git switch -c "$branch"
@@ -48,7 +59,9 @@ jobs:
           git commit -m "chore: sync upstream void to $TAG"
           git push origin "$branch"
           {
-            echo "Syncs \`packages/react\` from void $TAG. Tests are $status at this head."
+            echo "Syncs \`packages/react\` from void $TAG. The dispatched CI must pass before merging."
+            echo
+            echo 'Comparison reports, diagnostics and the tested tarball are retained for 90 days in the dispatched CI run (behavior-comparison-<commit>). Release reports are attached permanently to the GitHub release.'
             echo
             echo '```'
             cat sync-report.txt

@@ -42,6 +42,7 @@ export function prepareConsumers(artifacts: string): Prepared {
   const packLog = join(artifacts, 'pack.log');
   run('pnpm', ['--filter', 'void-preact', 'pack', '--pack-destination', directory], root, packLog);
   const tarball = join(directory, `void-preact-${manifest.version}.tgz`);
+  cpSync(tarball, join(artifacts, `void-preact-${manifest.version}.tgz`));
   const sources = files(template).map((path) => ({ path: relative(template, path), sha256: hash(readFileSync(path)) }));
   const consumers: Consumer[] = [];
   const adapters: Adapter[] = ['react', 'preact'];

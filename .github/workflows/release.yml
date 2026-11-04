@@ -1,0 +1,73 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      notes:
+        description: Release changes and migration steps (Markdown).
+        required: true
+        type: string
+
+concurrency:
+  group: npm-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: write
+      actions: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: behavior-comparison-${{ github.sha }}
+          path: evidence
+      - id: package
+        env:
+          RELEASE_NOTES: ${{ inputs.notes }}
+        run: node tools/ci/prepare-release.ts evidence release
+      - name: Inspect the tested package
+        env:
+          TARBALL: ${{ steps.package.outputs.tarball }}
+        run: |
+          tar -tzf "$TARBALL"
+          npm publish "$TARBALL" --access public --dry-run
+      - name: Require an unused version tag
+        env:
+          TAG: ${{ steps.package.outputs.tag }}
+        run: |
+          set +e
+          git ls-remote --exit-code origin "refs/tags/$TAG"
+          status=$?
+          set -e
+          if [ "$status" != 2 ]; then
+            echo 'Expected an unused tag; tag already exists or remote lookup failed.' >&2
+            exit 1
+          fi
+      - name: Publish the tested package using npm trusted publishing
+        env:
+          TARBALL: ${{ steps.package.outputs.tarball }}
+        run: npm publish "$TARBALL" --access public
+      - name: Tag and retain release evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.package.outputs.tag }}
+        run: |
+          gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --notes-file release/release-notes.md release/*.tgz release/report.md release/report.json release/SHA256SUMS

@@ -57,15 +57,17 @@ Import Void components and hooks from `void-preact`. See the [Void Pages documen
 
 ## Compatibility
 
-Supported exact peers are **void 1.6.1**, **preact 11.1.1**, and **preact-render-to-string 6.8.2**. Vite 8 is required. Deferred hydration and navigation use a maintained private Suspense adapter; see the [support contract and update procedure](DESIGN.md#private-suspense-support-contract).
+The current version in this repository supports the following dependencies:
 
-## Versioning
+| void-preact | Void (exact) | Preact (exact) | preact-render-to-string (exact) | Vite |
+| --- | --- | --- | --- | --- |
+| 0.1.0 | 1.6.1 | 11.1.1 | 6.8.2 | ^8.0.0 |
 
-`void-preact` has its own version, independent of Void. During 0.x, patches fix compatible behavior; minors may change APIs or supported peers. From 1.0, releases follow [Semantic Versioning](https://semver.org/). Release notes identify supported peers and migration steps.
+This table describes the current version only. For older versions, see the compatibility table and comparison evidence attached to each [GitHub release](https://github.com/yujiym/void-preact/releases). Deferred hydration and navigation use a maintained private Suspense adapter; see the [support contract and update procedure](DESIGN.md#private-suspense-support-contract).
 
 ## Development
 
-Use the Node version in `.node-version`. Handwritten tooling and E2E use TypeScript, run directly in Node, and are included in strict typechecking. The React test stubs remain JavaScript dependency packages.
+Use the Node version in `.node-version`, generated from the pinned upstream version. Handwritten tooling and E2E use TypeScript, run directly in Node, and are included in strict typechecking. The React test stubs remain JavaScript dependency packages.
 
 ```sh
 pnpm install
@@ -79,9 +81,17 @@ pnpm test:comparison
 pnpm check:port
 ```
 
-The [comparison app](test/comparison/app) runs one shared app against real installed React and packed Preact, in dev and preview. Both apps are installed outside the workspace so React cannot resolve to the test stubs. `artifacts/comparison/report.md` records equivalent sampled behavior, observed differences, unsupported exports, and unverified scope. Passing the sampled matrix does not establish complete React equivalence. CI retains reports and diagnostics and shows test totals in its summaries.
+The [comparison app](test/comparison/app) runs one shared app against real installed React and packed Preact, in dev and preview. Both apps are installed outside the workspace so React cannot resolve to the test stubs. `artifacts/comparison/report.md` records equivalent sampled behavior, observed differences, unsupported exports, and unverified scope. Passing the sampled matrix does not establish complete React equivalence. CI retains reports, diagnostics and the tested tarball for 90 days, keyed by commit SHA, and shows test totals in its summaries. Releases retain the reports, tarball and checksum as GitHub release assets.
 
 This repo follows `packages/react` in Void. Change `tools/port/config.ts` or its overlays, then run `pnpm port generate`; generated files and `upstream/` are maintained by that tool. Run `pnpm port sync <tag>` for an upstream release. See [DESIGN.md](DESIGN.md) for the design, support conditions, update gates, and release procedure.
+
+## Automation
+
+Upstream sync runs weekly on Tuesday at 06:00 JST (Monday 21:00 UTC), or manually. It opens an update PR and dispatches the full CI, including the React/Preact comparison. Review and merge remain maintainer actions. GitHub must allow Actions to create pull requests.
+
+Build, typecheck, unit and upstream integration tests run on Linux and Windows. Packed-consumer and comparison tests run on Linux with Chromium.
+
+The manually dispatched Release workflow reruns all CI and publishes the exact tested tarball, then creates a version tag and GitHub release with compatibility details and evidence. npm trusted publishing and the GitHub `npm` environment must be configured first; see [release setup and procedure](DESIGN.md#releasing). Updating the package version and reviewing compatibility changes remain maintainer actions.
 
 ## License
 

@@ -33,6 +33,7 @@ it('checks and removes stale generated files while preserving hand tests and ign
       rewrites: [], dropped: [], testRewrites: [], divergences: [], mechanical: [], ported: [],
     })};\n`);
     copyFileSync(join(ROOT, 'tools/port/run.ts'), join(dir, 'tools/port/run.ts'));
+    write('upstream/.node-version', '24.22.1\n');
     write('upstream.json', JSON.stringify({ tag: 'fixture' }));
     write('.gitignore', 'node_modules\ndist\n.void\n');
     write('upstream/test/deleted helper.ts');
@@ -48,6 +49,10 @@ it('checks and removes stale generated files while preserving hand tests and ign
     write('packages/preact/test/preact/hand.test.ts');
     git('init', '--quiet');
 
+    expect(run('generate').status).toBe(0);
+    expect(readFileSync(join(dir, '.node-version'), 'utf8')).toBe('24.22.1\n');
+    write('.node-version', '22.0.0\n');
+    expect(run('check').stderr).toContain('generated file differs');
     expect(run('generate').status).toBe(0);
     git('add', '--all');
     expect(run('check').status).toBe(0);

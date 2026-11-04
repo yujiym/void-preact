@@ -1,12 +1,14 @@
 # void-preact design
 
-`void-preact` is a Preact adapter for [Void](https://void.cloud), ported from `@void/react`. A Void app switches to it by changing one plugin and its imports. The rule that shapes this repo is that it follows `@void/react`, in API and in tests, at every Void release.
+`void-preact` is a [Preact](https://preactjs.com) adapter for [Void](https://void.cloud), ported from `@void/react`. A Void app switches to it by changing one plugin and its imports. The rule that shapes this repo is that it follows `@void/react`, in API and in tests, at every Void release.
 
 ## Repo layout mirrors the upstream monorepo
 
 ```
 DESIGN.md                  adapter design and support contract
 upstream.json              pinned tag and SHA
+upstream/.node-version     pinned upstream Node version
+.node-version              generated Node version
 upstream/                  verbatim snapshot at that tag, never edited
 tools/port/config.ts       every recorded difference from packages/react
 tools/port/run.ts          sync, generate, check, report
@@ -83,11 +85,12 @@ These are the choices forced by what Preact 11 does not have.
 | Workflow | Job | What it proves |
 | --- | --- | --- |
 | `ci.yml` | `port` | Generated files, mechanical source, and classification match the pinned snapshot |
-| `ci.yml` | `checks` | Build, typecheck, upstream and own unit tests |
-| `ci.yml` | `integration` | The upstream shared contract against the playground, in Chromium, in dev and preview |
+| `ci.yml` | `checks` | Build, strict typecheck including all adapter tests, upstream and own unit tests on Linux and Windows |
+| `ci.yml` | `integration` | The upstream shared contract against the playground, in Chromium, in dev and preview on Linux and Windows |
 | `ci.yml` | `packed-consumer` | The packed tarball builds and server-renders in a fresh app outside the workspace |
 | `ci.yml` | `comparison` | Shared behavioral and private-Suspense maintenance cases against real installed React and packed Preact, in dev and preview |
-| `upstream-sync.yml` | `sync` | Weekly, opens a PR for a new Void release with the upstream diff, the ported files to review, and the test status |
+| `upstream-sync.yml` | `sync` | Weekly, opens a PR for a new Void release with the upstream diff and ported files to review, then dispatches full CI |
+| `release.yml` | `verify`, `publish` | Manual release from main; full CI, exact tested tarball publication, version tag and release evidence |
 
 ## Versioning
 
@@ -107,7 +110,7 @@ These are the choices forced by what Preact 11 does not have.
 
 Use Node from `.node-version` and the package manager in `package.json`. Install with `pnpm install --frozen-lockfile`.
 
-The weekly sync workflow opens one branch per upstream tag. GitHub must allow Actions to create pull requests in the repository's Actions settings. Its bot-created pull request does not trigger the normal PR workflow, so it explicitly dispatches CI on that branch. A failed sync step needs manual attention in the workflow log. It does not indicate that the current release has stopped working.
+The weekly sync workflow opens one branch per upstream tag. GitHub must allow Actions to create pull requests in the repository's Actions settings. Its bot-created pull request does not trigger the normal PR workflow, so it explicitly dispatches CI on that branch, including packed-consumer and comparison tests. The generated `.node-version` follows the upstream snapshot; sync switches Node before updating the lockfile. Existing update branches are left for maintainer review. A failed sync step needs manual attention in the workflow log. It does not indicate that the current release has stopped working.
 
 To update locally on a clean branch:
 
@@ -129,21 +132,22 @@ The packed consumer checks SSR and Markdown frontmatter, hydrates native Preact 
 
 ## Releasing
 
-Keep the package's version independent of Void's exact peer version. Increment `packages/preact/package.json` using semver, update the lockfile with `pnpm install --no-frozen-lockfile`, and describe the change in the GitHub release notes. Before publishing, run the update checks above on the final commit and require CI to pass.
+Keep the package version independent of Void's exact peer version. Increment `packages/preact/package.json` using semver, update the README Compatibility row, update the lockfile with `pnpm install --no-frozen-lockfile`, and merge the reviewed change. README keeps only the current version; historical compatibility tables belong in each GitHub release, alongside its comparison evidence.
 
-```sh
-pnpm --filter void-preact pack --pack-destination /tmp
-```
+One-time operator setup:
 
-Packing rebuilds the package, checks that each public export has its runtime and declaration files, and includes the root README and license. Inspect the resulting archive with `tar -tzf /tmp/void-preact-VERSION.tgz`. It must contain `package/dist`, `package/package.json`, `package/README.md`, and `package/LICENSE`, without workspace tests or React stubs.
+- Allow GitHub Actions to create pull requests for upstream sync.
+- Create the GitHub environment `npm`, restrict deployment branches to `main`, and configure required reviewers if desired.
+- In npm's trusted publisher settings for `void-preact`, register owner `yujiym`, repository `void-preact`, workflow `release.yml`, and environment `npm`. The workflow uses OIDC, without an npm token. See [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/).
+- Before the first release, confirm package name ownership. If the package does not yet exist, an authorized npm operator must bootstrap its first publication and then configure trusted publishing. Do not expect OIDC to claim an unpublished name.
 
-An npm account with publishing rights to `void-preact` must publish the verified archive. Check name ownership before the first release. Publishing is a separate operator action:
+Run the **Release** workflow manually on `main`, providing release changes and migration notes. It runs the complete CI again on that commit, including Windows checks and Linux packed-consumer/comparison. The comparison job uploads the exact tarball it installed. Publication waits for every verification job to succeed.
 
-```sh
-npm publish /tmp/void-preact-VERSION.tgz --access public
-```
+The publish job downloads evidence from that same run, requires a passing comparison from the clean release commit, and verifies the tarball SHA-256 against the report. It inspects the archive and runs `npm publish --dry-run`, then publishes that archive. It creates `vVERSION` and a GitHub release targeting the verified commit, with the provided notes, a generated compatibility table, `report.md`, `report.json`, the tarball and `SHA256SUMS`. Package creation and publication do not rebuild a different archive after testing.
 
-Create a matching `vVERSION` Git tag and GitHub release from the verified commit after publication. Record the supported Void version and compatibility changes in its notes. If a published version is faulty, deprecate it and publish a corrected patch; do not reuse its version number.
+The workflow currently accepts stable `X.Y.Z` versions. A package version already published cannot be reused. If npm publication succeeds but GitHub release creation fails, recover by creating the matching tag/release at the workflow's verified commit and uploading the artifacts from that run; do not republish. If a published version is faulty, deprecate it and release a corrected patch.
+
+For first-publication bootstrap or local inspection, run all update checks, plus `pnpm test:comparison:unit` and `pnpm test:comparison`, on the final clean commit. The tested tarball is retained under the timestamped `artifacts/comparison/` directory. Inspect it with `tar -tzf`; it must contain `package/dist`, `package/package.json`, `package/README.md` and `package/LICENSE`, without tests or React stubs. An authorized operator can publish that exact archive with `npm publish PATH_TO_TESTED_TARBALL --access public`, then create the matching version tag/release and attach the reports and checksum.
 
 ## Installed behavior comparison
 
@@ -155,7 +159,7 @@ The report in `artifacts/comparison/report.md` and `report.json` classifies each
 
 Real local email signup, session cookies, protected server access, reload, signout and signin are exercised without intercepting auth endpoints. External OAuth providers and production deployment remain unverified. The report also lists omitted prefetch/cache/scroll cases, full type compatibility, other browser engines and third-party library behavior. Passing this sampled matrix does not mean complete React equivalence.
 
-The prepared apps are retained in the printed temporary directory for manual use. Start either with `pnpm dev` in its own directory. Results and failure screenshots/logs are CI artifacts. Temporary environments, auth secrets, account passwords and session cookies are not uploaded.
+The prepared apps are retained in the printed temporary directory for manual use. Start either with `pnpm dev` in its own directory. Results, the exact tested tarball and failure screenshots/logs are CI artifacts named `behavior-comparison-<commit SHA>`, retained for 90 days (subject to repository retention limits). This applies to upstream sync CI as well. Released versions retain reports and the tarball as GitHub release assets, so historical compatibility does not depend on expiring Actions artifacts. Temporary environments, auth secrets, account passwords and session cookies are not uploaded.
 
 ## Private Suspense support contract
 

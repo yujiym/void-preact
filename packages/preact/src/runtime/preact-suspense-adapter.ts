@@ -35,7 +35,14 @@ function suspensionStart(vnode: object): Node | null | undefined {
 }
 
 /** Owns the private Preact contract. This module is never a package entry point. */
-export function installSuspenseAdapter(prototype: unknown) {
+interface SuspenseAdapter {
+  trackBoundary(prototype: object): void;
+  isPending(boundary: object): boolean;
+  discardsServerFallback: boolean;
+  whenSettled(run: () => void): () => void;
+}
+
+export function installSuspenseAdapter(prototype: unknown): SuspenseAdapter {
   if (typeof prototype !== 'object' || prototype === null || !('__c' in prototype) || typeof prototype.__c !== 'function') {
     return incompatible('Suspense.prototype.__c must be a function');
   }

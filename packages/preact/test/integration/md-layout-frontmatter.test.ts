@@ -1,6 +1,6 @@
 // The Markdown plugin source needs its ambient module declarations in this package's typecheck.
 // eslint-disable-next-line typescript/triple-slash-reference -- env.d.ts has no exports to import.
-/// <reference path="../../../md/src/env.d.ts" />
+
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createServer } from 'vite';

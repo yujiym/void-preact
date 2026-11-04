@@ -26,7 +26,7 @@ export type IslandPageVisit = Readonly<{
 export async function openIslandPage(
   root: string,
   // Plugins come from each package's own Vite types, so take them loosely here.
-  options: { plugins: ReadonlyArray<object>; alias?: Record<string, string> },
+  options: { plugins: ReadonlyArray<object>; alias?: import('vite').AliasOptions },
 ): Promise<IslandPageVisit> {
   writeFileSync(`${root}/entry.js`, 'import "virtual:void-islands-client";\n');
   const browser = await chromium.launch();

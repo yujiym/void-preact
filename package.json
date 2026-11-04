@@ -13,7 +13,7 @@
     "test:comparison:unit": "node --test test/comparison/*.test.ts",
     "check:suspense": "node tools/ci/check-suspense-support.ts",
     "typecheck:tools": "tsc --noEmit --project tsconfig.tools.json",
-    "test:release": "node --test tools/ci/prepare-release.test.ts"
+    "test:release": "node --test tools/ci/*.test.ts"
   },
   "devDependencies": {
     "@types/cross-spawn": "^6.0.6",

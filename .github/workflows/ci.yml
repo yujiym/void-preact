@@ -4,8 +4,13 @@ on:
   push:
     branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
   workflow_dispatch:
-  workflow_call:
+    inputs:
+      windows:
+        description: Include Windows development checks.
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -26,7 +31,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: >-
+          ${{ (github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'test: windows') || inputs.windows) && fromJSON('["ubuntu-latest","windows-latest"]') || fromJSON('["ubuntu-latest"]') }}
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -48,7 +54,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: >-
+          ${{ (github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'test: windows') || inputs.windows) && fromJSON('["ubuntu-latest","windows-latest"]') || fromJSON('["ubuntu-latest"]') }}
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -98,3 +105,15 @@ jobs:
           path: artifacts/comparison/
           if-no-files-found: error
           retention-days: 90
+
+  required:
+    name: CI required
+    if: always()
+    needs: [port, checks, integration, packed-consumer, comparison]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every selected job to succeed
+        env:
+          JOBS: ${{ toJSON(needs) }}
+        run: |
+          node -e 'const jobs = JSON.parse(process.env.JOBS); if (Object.values(jobs).some(job => job.result !== "success")) { console.error(jobs); process.exit(1); }'

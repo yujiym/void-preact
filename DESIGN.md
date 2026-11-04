@@ -90,7 +90,16 @@ These are the choices forced by what Preact 11 does not have.
 | `ci.yml` | `packed-consumer` | The packed tarball builds and server-renders in a fresh app outside the workspace |
 | `ci.yml` | `comparison` | Shared behavioral and private-Suspense maintenance cases against real installed React and packed Preact, in dev and preview |
 | `upstream-sync.yml` | `sync` | Weekly, opens a PR for a new Void release with the upstream diff and ported files to review, then dispatches full CI |
-| `release.yml` | `verify`, `publish` | Manual release from main; full CI, exact tested tarball publication, version tag and release evidence |
+| `ci.yml` | `required` | Stable `CI required` check aggregating every selected job |
+| `npm-publish.yml` | `publish` | Manual publication of a successful main CI run’s exact tested tarball, version tag and release evidence |
+
+Normal pull requests run Linux checks. PRs labeled `test: windows` and main pushes also run Windows build, typecheck, unit and integration checks. Adding or removing a label reruns CI; subsequent PR commits retain the label choice. Manual CI runs expose a `windows` option, disabled by default. Upstream-sync dispatches use the default Linux checks before review; their merged main commit receives Windows verification before publication.
+
+### Branch ruleset
+
+In Settings → Rules → Rulesets → main, replace the seven individual required status checks with **CI required**, from **GitHub Actions**. Keep strict up-to-date checking and the other existing protections. The aggregate runs even after a dependency fails or is cancelled, and fails unless all selected jobs succeed. A labeled PR therefore still requires Windows success. Do not require optional Windows matrix entries individually, or ordinary PRs will wait for checks that were never created. Do not require the npm publish workflow for merging.
+
+Wait for `CI required` to appear in a CI run before selecting it in the ruleset. The repository ruleset is maintained in GitHub settings, separately from these workflow files.
 
 ## Versioning
 
@@ -138,12 +147,14 @@ One-time operator setup:
 
 - Allow GitHub Actions to create pull requests for upstream sync.
 - Create the GitHub environment `npm`, restrict deployment branches to `main`, and configure required reviewers if desired.
-- In npm's trusted publisher settings for `void-preact`, register owner `yujiym`, repository `void-preact`, workflow `release.yml`, and environment `npm`. The workflow uses OIDC, without an npm token. See [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/).
+- In npm's trusted publisher settings for `void-preact`, register owner `yujiym`, repository `void-preact`, workflow `npm-publish.yml`, and environment `npm`. Allow direct `npm publish` in that trusted publisher. The workflow uses OIDC, without an npm token. Configure it shortly before the next publication: npm requires a first successful publish within two days. See [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/).
 - Before the first release, confirm package name ownership. If the package does not yet exist, an authorized npm operator must bootstrap its first publication and then configure trusted publishing. Do not expect OIDC to claim an unpublished name.
 
-Run the **Release** workflow manually on `main`, providing release changes and migration notes. It runs the complete CI again on that commit, including Windows checks and Linux packed-consumer/comparison. The comparison job uploads the exact tarball it installed. Publication waits for every verification job to succeed.
+Wait for the **CI** run triggered by the final main push to succeed, including Windows checks, packed-consumer and comparison. The comparison job uploads the exact tarball it installed. Copy its run ID from the Actions URL.
 
-The publish job downloads evidence from that same run, requires a passing comparison from the clean release commit, and verifies the tarball SHA-256 against the report. It inspects the archive and runs `npm publish --dry-run`, then publishes that archive. It creates `vVERSION` and a GitHub release targeting the verified commit, with the provided notes, a generated compatibility table, `report.md`, `report.json`, the tarball and `SHA256SUMS`. Package creation and publication do not rebuild a different archive after testing.
+Run **npm publish** manually on `main`, providing that `ci_run_id` and release changes/migration notes. It does not call or rerun CI. It accepts only a completed successful run of `.github/workflows/ci.yml`, triggered by a push to main, whose commit exactly matches the selected publish commit. PR runs, manual CI runs, failed runs and older commits are rejected. If main advances, wait for the new commit’s CI before publishing, or publish the older version through the documented operator procedure. If artifacts expire, rerun that main-push CI and wait for success.
+
+The publish job downloads evidence from the selected verified CI run, requires a passing comparison from the clean release commit, and verifies the tarball SHA-256 against the report. It inspects the archive and runs `npm publish --dry-run`, then publishes that archive. It creates `vVERSION` and a GitHub release targeting the verified commit, with the provided notes, a generated compatibility table, `report.md`, `report.json`, the tarball, `SHA256SUMS` and CI-run metadata. Package creation and publication do not rebuild a different archive after testing.
 
 The workflow currently accepts stable `X.Y.Z` versions. A package version already published cannot be reused. If npm publication succeeds but GitHub release creation fails, recover by creating the matching tag/release at the workflow's verified commit and uploading the artifacts from that run; do not republish. If a published version is faulty, deprecate it and release a corrected patch.
 

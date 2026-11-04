@@ -26,9 +26,8 @@ export default defineConfig({
 });
 ```
 
-Add these options to **`compilerOptions` in `tsconfig.json`**, keeping the app's existing configuration:
-
-```json
+```jsonc
+// tsconfig.json
 {
   "compilerOptions": {
     "jsx": "react-jsx",

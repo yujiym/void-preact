@@ -2,8 +2,10 @@
 import { execFileSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join, relative } from 'node:path';
+import { dirname, join, relative as nativeRelative } from 'node:path';
 import config from './config.ts';
+
+const relative = (from: string, to: string) => nativeRelative(from, to).replaceAll('\\', '/');
 
 const ROOT = join(import.meta.dirname, '..', '..');
 const UPSTREAM = join(ROOT, 'upstream');

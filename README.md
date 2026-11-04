@@ -89,7 +89,7 @@ This repo follows `packages/react` in Void. Change `tools/port/config.ts` or its
 
 Upstream sync runs weekly on Tuesday at 06:00 JST (Monday 21:00 UTC), or manually. It opens an update PR and dispatches the full CI, including the React/Preact comparison. Review and merge remain maintainer actions. GitHub must allow Actions to create pull requests.
 
-Build, typecheck, unit and upstream integration tests run on Linux. Windows is outside the supported development environment. Packed-consumer and comparison tests run on Linux with Chromium.
+Build, typecheck, unit and upstream integration tests run on Linux and Windows. Packed-consumer and comparison tests run on Linux with Chromium.
 
 The manually dispatched Release workflow reruns all CI and publishes the exact tested tarball, then creates a version tag and GitHub release with compatibility details and evidence. npm trusted publishing and the GitHub `npm` environment must be configured first; see [release setup and procedure](DESIGN.md#releasing). Updating the package version and reviewing compatibility changes remain maintainer actions.
 

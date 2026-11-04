@@ -46,6 +46,19 @@ The API is the one in the [Void Pages documentation](https://void.cloud/guide/pa
 
 `void-preact` peers on one exact `void` version, because it imports adapter-facing Void entries that change between releases.
 
+## Versioning
+
+The npm package is named `void-preact`. Its version is independent of Void's version. The supported Void version is declared in `peerDependencies` and documented in this README.
+
+During 0.x development:
+
+- Patch releases contain backward-compatible fixes, including Preact-specific bugs and missed upstream behavior.
+- Minor releases add features, introduce breaking changes, or change the supported Void version. Release notes describe any required migration.
+
+From 1.0.0 onward, releases follow [Semantic Versioning](https://semver.org/): patch for backward-compatible fixes, minor for backward-compatible features, and major for breaking changes. Replacing a supported exact Void peer version requires a major release because consumers must update that dependency.
+
+Upstream updates are versioned according to their impact on consumers; their version numbers are not copied. Each release records its changes and supported Void version in `CHANGELOG.md`.
+
 ## Development
 
 This repo follows `packages/react` in the Void monorepo. See [docs/design.md](docs/design.md) for the design, upstream updates, and release steps. CI summaries show the test totals for each run.

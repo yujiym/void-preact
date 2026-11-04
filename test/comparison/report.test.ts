@@ -1,4 +1,4 @@
-import type { JsonValue } from '../../e2e/types.ts';
+import type { JsonValue } from './types.ts';
 import type { CaseMetadata, PassedCell, ResultCell } from './types.ts';
 import { adapters, modes } from './report.ts';
 import assert from 'node:assert/strict';
@@ -50,7 +50,7 @@ test('setup failure cannot produce a passing comparison', () => {
 });
 
 test('support cannot promise untested ranges or mismatched development versions', async () => {
-  const { supportedVersions } = await import('./support.ts');
+  const { supportedVersions } = await import('../../tools/ci/suspense-support.ts');
   const manifest = { peerDependencies: { preact: '11.1.1', 'preact-render-to-string': '6.8.2' }, devDependencies: { preact: '11.1.1', 'preact-render-to-string': '6.8.2' }, exports: {} };
   assert.deepEqual(supportedVersions(manifest), manifest.peerDependencies);
   assert.throws(() => supportedVersions({ ...manifest, peerDependencies: { ...manifest.peerDependencies, preact: '^11.1.1' } }), /exact tested version/);
@@ -64,7 +64,7 @@ test('an empty registry cannot claim a passing comparison', () => {
 
 test('private-Suspense maintenance coverage cannot silently disappear', async () => {
   const { assertSuspenseCoverage } = await import('./support.ts');
-  const { cases: suspense } = await import('../../e2e/suspense.ts');
+  const { cases: suspense } = await import('./suspense.ts');
   assert.doesNotThrow(() => assertSuspenseCoverage(suspense));
   for (const scenario of suspense.filter((item) => item.id !== 'suspense-root-cancellation-layout-state')) {
     assert.throws(() => assertSuspenseCoverage(suspense.filter((item) => item !== scenario)), /Required private-Suspense behavior/);

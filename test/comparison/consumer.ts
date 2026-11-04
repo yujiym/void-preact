@@ -9,12 +9,12 @@ import { createServer } from 'node:net';
 import { setTimeout as delay } from 'node:timers/promises';
 import manifest from '../../packages/preact/package.json' with { type: 'json' };
 import upstreamManifest from '../../upstream.json' with { type: 'json' };
-import type { Adapter, Mode } from '../../e2e/types.ts';
+import type { Adapter, Mode } from './types.ts';
 import type { Consumer, DependencyProof, PackageProof, Prepared, Server } from './types.ts';
-import { supportedVersions } from './support.ts';
+import { supportedVersions } from '../../tools/ci/suspense-support.ts';
 
 export const root = fileURLToPath(new URL('../../', import.meta.url));
-const template = join(root, 'examples/comparison/shared');
+const template = join(root, 'test/comparison/app');
 supportedVersions(manifest);
 export const upstream = upstreamManifest;
 const hash = (value: string | Buffer) => createHash('sha256').update(value).digest('hex');

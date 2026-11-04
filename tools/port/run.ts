@@ -147,7 +147,7 @@ function sync(tag: string): void {
   rmSync(dir, { recursive: true, force: true });
   writeFileSync(PIN, `${JSON.stringify({ repo: config.repo, tag, sha }, null, 2)}\n`);
   const version = tag.replace(/^v/, '').replace(/\+.*$/, '');
-  for (const file of ['tools/md-host/package.json', 'packages/preact/package.json', 'tools/port/overlay/playground/preact-pages/package.json']) {
+  for (const file of ['test/fixtures/md-host/package.json', 'packages/preact/package.json', 'tools/port/overlay/playground/preact-pages/package.json']) {
     const abs = join(ROOT, file);
     writeFileSync(abs, readFileSync(abs, 'utf8').replaceAll(/"(void|@void\/md)": "[^"]+"/g, `"$1": "${version}"`));
   }

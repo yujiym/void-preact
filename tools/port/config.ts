@@ -50,7 +50,7 @@ const config: PortConfig = {
   ],
 
   // Hand-owned paths inside generated roots. Ignored files are also preserved.
-  preserved: ['test/preact/', 'packages/preact/test/preact/'],
+  preserved: ['test/preact/', 'test/comparison/', 'test/fixtures/', 'packages/preact/test/preact/'],
 
   // Upstream source files, by how this repo tracks them.
   // mechanical: must equal the upstream file after `sourceRewrites`. CI enforces it.
@@ -121,13 +121,13 @@ const config: PortConfig = {
     {
       file: 'test/island-css-build.ts',
       from: "'../packages/md/dist/plugin.mjs'",
-      to: "'../tools/md-host/node_modules/@void/md/dist/plugin.mjs'",
+      to: "'./fixtures/md-host/node_modules/@void/md/dist/plugin.mjs'",
       reason: 'This repo uses the published @void/md.',
     },
     {
       file: 'packages/preact/test/integration/md-layout-frontmatter.test.ts',
       from: "'../../../md/src/plugin.ts'",
-      to: "'../../../../tools/md-host/node_modules/@void/md/dist/plugin.mjs'",
+      to: "'../../../../test/fixtures/md-host/node_modules/@void/md/dist/plugin.mjs'",
       reason: 'This repo uses the published @void/md.',
     },
     {

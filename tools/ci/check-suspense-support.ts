@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { supportedVersions } from '../comparison/support.ts';
+import { supportedVersions } from './suspense-support.ts';
 import manifest from '../../packages/preact/package.json' with { type: 'json' };
 
 const root = fileURLToPath(new URL('../../', import.meta.url));

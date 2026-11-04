@@ -19,8 +19,7 @@
     "resolveJsonModule": true
   },
   "include": [
-    "e2e/**/*.ts",
-    "tools/comparison/*.ts",
+    "test/comparison/*.ts",
     "tools/ci/*.ts",
     "tools/port/*.ts"
   ]

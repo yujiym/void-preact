@@ -1,5 +1,5 @@
 import type { Browser } from 'playwright';
-import type { JsonValue } from '../../e2e/types.ts';
+import type { JsonValue } from './types.ts';
 import type { Metadata, ResultCell, Server } from './types.ts';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
@@ -7,8 +7,8 @@ import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromium } from 'playwright';
-import { cases as commonCases } from '../../e2e/comparison.ts';
-import { cases as suspenseCases } from '../../e2e/suspense.ts';
+import { cases as commonCases } from './comparison.ts';
+import { cases as suspenseCases } from './suspense.ts';
 import { root, upstream, prepareConsumers, buildConsumer, startConsumer } from './consumer.ts';
 import { modes, validateCases, createReport, markdown } from './report.ts';
 import { assertSuspenseCoverage } from './support.ts';
@@ -19,7 +19,7 @@ mkdirSync(artifacts, { recursive: true });
 const cases = [...commonCases, ...suspenseCases];
 validateCases(cases);
 assertSuspenseCoverage(cases);
-const assertionFiles = ['e2e/comparison.ts', 'e2e/suspense.ts'];
+const assertionFiles = ['test/comparison/comparison.ts', 'test/comparison/suspense.ts'];
 const metadata: Metadata = {
   node: process.version,
   platform: process.platform,

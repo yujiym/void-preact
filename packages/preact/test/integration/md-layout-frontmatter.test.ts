@@ -7,7 +7,7 @@ import { createServer } from 'vite';
 import { expect, it } from 'vite-plus/test';
 import { waitForIslandsHydrated } from '../../../../test/browser-helpers.ts';
 import { openIslandPage, type IslandPageVisit } from '../../../../test/island-page-browser.ts';
-import { voidMarkdown } from '../../../../tools/md-host/node_modules/@void/md/dist/plugin.mjs';
+import { voidMarkdown } from '../../../../test/fixtures/md-host/node_modules/@void/md/dist/plugin.mjs';
 import { islandsPlugin } from '../../src/plugin-islands.ts';
 
 const ISLAND_FRONTMATTER_SCRIPT =

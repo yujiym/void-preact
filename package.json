@@ -9,8 +9,8 @@
     "typecheck": "pnpm --filter void-preact typecheck && pnpm typecheck:tools",
     "test": "vp test run --project unit",
     "test:integration": "vp test run --project integration",
-    "test:comparison": "pnpm typecheck:tools && node tools/comparison/run.ts",
-    "test:comparison:unit": "node --test tools/comparison/*.test.ts",
+    "test:comparison": "pnpm typecheck:tools && node test/comparison/run.ts",
+    "test:comparison:unit": "node --test test/comparison/*.test.ts",
     "check:suspense": "node tools/ci/check-suspense-support.ts",
     "typecheck:tools": "tsc --noEmit --project tsconfig.tools.json"
   },

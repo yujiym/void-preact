@@ -1,4 +1,4 @@
-import type { Adapter, Mode } from '../../e2e/types.ts';
+import type { Adapter, Mode } from './types.ts';
 import type { CaseMetadata, Metadata, ResultCell, RowStatus } from './types.ts';
 import { isDeepStrictEqual } from 'node:util';
 

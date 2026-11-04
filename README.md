@@ -57,7 +57,7 @@ Import Void components and hooks from `void-preact`. See the [Void Pages documen
 
 ## Compatibility
 
-Supported exact peers are **void 1.6.1**, **preact 11.1.1**, and **preact-render-to-string 6.8.2**. Vite 8 is required. Deferred hydration and navigation use a maintained private Suspense adapter; see the [support contract and update procedure](docs/design.md#private-suspense-support-contract).
+Supported exact peers are **void 1.6.1**, **preact 11.1.1**, and **preact-render-to-string 6.8.2**. Vite 8 is required. Deferred hydration and navigation use a maintained private Suspense adapter; see the [support contract and update procedure](DESIGN.md#private-suspense-support-contract).
 
 ## Versioning
 
@@ -79,9 +79,9 @@ pnpm test:comparison
 pnpm check:port
 ```
 
-The [comparison example](examples/comparison) runs one shared app against real installed React and packed Preact, in dev and preview. Both apps are installed outside the workspace so React cannot resolve to the test stubs. `artifacts/comparison/report.md` records equivalent sampled behavior, observed differences, unsupported exports, and unverified scope. Passing the sampled matrix does not establish complete React equivalence. CI retains reports and diagnostics and shows test totals in its summaries.
+The [comparison app](test/comparison/app) runs one shared app against real installed React and packed Preact, in dev and preview. Both apps are installed outside the workspace so React cannot resolve to the test stubs. `artifacts/comparison/report.md` records equivalent sampled behavior, observed differences, unsupported exports, and unverified scope. Passing the sampled matrix does not establish complete React equivalence. CI retains reports and diagnostics and shows test totals in its summaries.
 
-This repo follows `packages/react` in Void. Change `tools/port/config.ts` or its overlays, then run `pnpm port generate`; generated files and `upstream/` are maintained by that tool. Run `pnpm port sync <tag>` for an upstream release. See [docs/design.md](docs/design.md) for the design, support conditions, update gates, and release procedure.
+This repo follows `packages/react` in Void. Change `tools/port/config.ts` or its overlays, then run `pnpm port generate`; generated files and `upstream/` are maintained by that tool. Run `pnpm port sync <tag>` for an upstream release. See [DESIGN.md](DESIGN.md) for the design, support conditions, update gates, and release procedure.
 
 ## License
 

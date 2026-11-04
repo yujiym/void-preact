@@ -1,8 +1,8 @@
 packages:
   - packages/*
   - playground/*
-  - tools/react-stub/*
-  - tools/md-host
+  - test/fixtures/react-stub/*
+  - test/fixtures/md-host
 allowBuilds:
   esbuild: true
   workerd: true

@@ -5,16 +5,21 @@
 ## Repo layout mirrors the upstream monorepo
 
 ```
+DESIGN.md                  adapter design and support contract
 upstream.json              pinned tag and SHA
 upstream/                  verbatim snapshot at that tag, never edited
-tools/port/config.ts      every recorded difference from packages/react
-tools/port/run.ts         sync, generate, check, report
+tools/port/config.ts       every recorded difference from packages/react
+tools/port/run.ts          sync, generate, check, report
 tools/port/overlay/        hand-owned files that replace generated ones
-tools/react-stub/          react and react-dom names for upstream tests
+tools/ci/                 package and CI checks
 packages/preact/src/       the adapter, same file names as packages/react/src
 packages/preact/test/unit, integration, fixtures   generated from upstream
 packages/preact/test/preact/                       hand-written tests
-test/                      generated shared contract and helpers
+test/*.ts                 generated shared contract and helpers
+test/comparison/          installed React and Preact comparison
+test/comparison/app/      canonical comparison app
+test/fixtures/react-stub/  react and react-dom names for upstream tests
+test/fixtures/md-host/     published Markdown plugin host
 playground/preact-pages/   generated from playground/react-pages
 ```
 
@@ -40,7 +45,7 @@ Upstream source that is in neither `mechanical` nor `ported` fails `check`, so a
 
 ## How tests stay close to upstream
 
-Upstream tests import `react` directly. `tools/react-stub` holds workspace packages named `react` and `react-dom` that re-export `preact/compat`, so the tests run as written, including those that start their own Vite server. The stub's `act` waits for pending work the way React's does. The stubs are dev-only and are never published. Playground pages reach Preact through the alias that `@preact/preset-vite` installs.
+Upstream tests import `react` directly. `test/fixtures/react-stub` holds workspace packages named `react` and `react-dom` that re-export `preact/compat`, so the tests run as written, including those that start their own Vite server. The stub's `act` waits for pending work the way React's does. The stubs are dev-only and are never published. Playground pages reach Preact through the alias that `@preact/preset-vite` installs.
 
 `packages/preact/test/preact/api-surface.test.ts` compares the exports of `runtime/index.ts` with the upstream file. Its allowed additions are `Suspense`, `use`, and `useFormStatus`, to expose Suspense and use from preact/compat and the adapter’s own useFormStatus.
 
@@ -142,9 +147,9 @@ Create a matching `vVERSION` Git tag and GitHub release from the verified commit
 
 ## Installed behavior comparison
 
-`examples/comparison/shared` is one canonical React-source app. `pnpm test:comparison` packs this adapter and prepares independent React and Preact apps outside the workspace. The Preact copy changes adapter imports and the form-status import; its React imports resolve through Preact compatibility aliases. Source hashes, actual dependency versions and paths, the upstream revision, and the packed tarball hash are recorded. No workspace React stub or shared node_modules tree is used.
+`test/comparison/app` is one canonical React-source app. `pnpm test:comparison` packs this adapter and prepares independent React and Preact apps outside the workspace. The Preact copy changes adapter imports and the form-status import; its React imports resolve through Preact compatibility aliases. Source hashes, actual dependency versions and paths, the upstream revision, and the packed tarball hash are recorded. No workspace React stub or shared node_modules tree is used.
 
-The executable case registries in `e2e/comparison.ts` and `e2e/suspense.ts` own assertions, related source-contract references, expected differences and API coverage labels. These are new sample scenarios related to the existing contracts, not unchanged executions of every upstream contract. Existing unit, integration and packed-consumer gates stay in place.
+The executable case registries in `test/comparison/comparison.ts` and `test/comparison/suspense.ts` own assertions, related source-contract references, expected differences and API coverage labels. These are new sample scenarios related to the existing contracts, not unchanged executions of every upstream contract. Existing unit, integration and packed-consumer gates stay in place.
 
 The report in `artifacts/comparison/report.md` and `report.json` classifies each scenario only after React and Preact run in both dev and preview. Equal successful observations are equivalent within that scenario. A declared difference must be observed on both sides and stays outside equivalence totals. Failed, missing or blocked required cells fail CI. Matching crashes are failures. Expected renderer diagnostics are recorded separately; only a case-specific exact React deferred-shell recovery diagnostic is accepted in the two deferred cases. Unexpected browser errors still fail. Export availability probes do not establish behavioral compatibility.
 
@@ -182,4 +187,4 @@ The private class and hooks are not public API. Generated islands call the narro
 
 Handwritten E2E, comparison, CI and upstream-sync scripts use TypeScript and run directly with the pinned Node toolchain. `tsconfig.tools.json` checks them with strict types, type-only imports and erasable syntax; Node execution is paired with `tsc`, because native type stripping does not type-check. `pnpm typecheck` includes both the adapter and tooling.
 
-`tools/react-stub` stays JavaScript because it is loaded as a dependency named react/react-dom by several test environments, without a compilation step. Distribution `dist/*.mjs` remains generated JavaScript. Upstream snapshots and their generated fixture conventions remain faithful to upstream.
+`test/fixtures/react-stub` stays JavaScript because it is loaded as a dependency named react/react-dom by several test environments, without a compilation step. Distribution `dist/*.mjs` remains generated JavaScript. Upstream snapshots and their generated fixture conventions remain faithful to upstream.

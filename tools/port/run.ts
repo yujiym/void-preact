@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative } from 'node:path';
-import config from './config.mjs';
+import config from './config.ts';
 
 const ROOT = join(import.meta.dirname, '..', '..');
 const UPSTREAM = join(ROOT, 'upstream');
@@ -12,7 +12,7 @@ const PIN = join(ROOT, 'upstream.json');
 const SOURCE = 'packages/react/src/';
 const SKIPPED_SNAPSHOT = /(^|\/)(node_modules|dist|\.void)(\/|$)/;
 
-function walk(dir) {
+function walk(dir: string): string[] {
   if (!existsSync(dir)) return [];
   return readdirSync(dir).flatMap((name) => {
     const path = join(dir, name);
@@ -20,14 +20,14 @@ function walk(dir) {
   });
 }
 
-const isText = (path) => !/\.(woff2?|png|jpe?g|ico|gif)$/.test(path);
-const isPreserved = (path) => config.preserved.some((prefix) => path.startsWith(prefix));
+const isText = (path: string) => !/\.(woff2?|png|jpe?g|ico|gif)$/.test(path);
+const isPreserved = (path: string) => config.preserved.some((prefix) => path.startsWith(prefix));
 
-function rewrite(text) {
+function rewrite(text: string): string {
   return config.rewrites.reduce((out, [from, to]) => out.replaceAll(from, to), text);
 }
 
-function applyDivergences(path, text) {
+function applyDivergences(path: string, text: string): string {
   for (const { file, from, to } of config.testRewrites) {
     if (file !== path) continue;
     if (!text.includes(from)) throw new Error(`Stale test rewrite in ${path}: ${from}`);
@@ -46,7 +46,7 @@ function applyDivergences(path, text) {
 
 /** Every generated file, keyed by repo path. Overlay files replace generated ones. */
 function expectedFiles() {
-  const files = new Map();
+  const files = new Map<string, string | Buffer>();
   for (const [from, to] of config.generate) {
     for (const abs of walk(join(UPSTREAM, from))) {
       const rel = relative(join(UPSTREAM, from), abs);
@@ -65,7 +65,7 @@ function expectedFiles() {
   return files;
 }
 
-function staleFiles(expected) {
+function staleFiles(expected: ReadonlyMap<string, string | Buffer>): string[] {
   const candidates = execFileSync('git', [
     '-C', ROOT, 'ls-files', '-z', '--cached', '--others', '--exclude-standard', '--',
     ...config.generate.map(([, target]) => target),
@@ -88,13 +88,21 @@ function generate() {
   }
 }
 
-function mechanicalSource(file) {
+function mechanicalSource(file: string): string {
   const text = readFileSync(join(UPSTREAM, SOURCE, file), 'utf8');
   return config.sourceRewrites.reduce((out, [from, to]) => out.replace(from, to), text);
 }
 
+function readPinTag(): string {
+  const pin: unknown = JSON.parse(readFileSync(PIN, 'utf8'));
+  if (typeof pin !== 'object' || pin === null || !('tag' in pin) || typeof pin.tag !== 'string') {
+    throw new Error(`Invalid upstream pin in ${PIN}: expected a tag string`);
+  }
+  return pin.tag;
+}
+
 function check() {
-  const problems = [];
+  const problems: string[] = [];
   const expected = expectedFiles();
   for (const target of staleFiles(expected)) problems.push(`stale generated file: ${target}`);
   for (const [target, content] of expected) {
@@ -122,10 +130,10 @@ function check() {
   }
   problems.forEach((problem) => console.error(problem));
   if (problems.length > 0) process.exit(1);
-  console.log(`port check ok at ${JSON.parse(readFileSync(PIN, 'utf8')).tag}`);
+  console.log(`port check ok at ${readPinTag()}`);
 }
 
-function sync(tag) {
+function sync(tag: string): void {
   const dir = mkdtempSync(join(tmpdir(), 'void-upstream-'));
   execFileSync('git', ['clone', '--quiet', '-c', 'advice.detachedHead=false', '--depth', '1', '--branch', tag, config.repo, dir], { stdio: 'inherit' });
   const sha = execFileSync('git', ['-C', dir, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
@@ -139,7 +147,7 @@ function sync(tag) {
   rmSync(dir, { recursive: true, force: true });
   writeFileSync(PIN, `${JSON.stringify({ repo: config.repo, tag, sha }, null, 2)}\n`);
   const version = tag.replace(/^v/, '').replace(/\+.*$/, '');
-  for (const file of ['tools/md-host/package.json', 'packages/preact/package.json', 'tools/port/overlay/playground/preact-pages/package.json']) {
+  for (const file of ['test/fixtures/md-host/package.json', 'packages/preact/package.json', 'tools/port/overlay/playground/preact-pages/package.json']) {
     const abs = join(ROOT, file);
     writeFileSync(abs, readFileSync(abs, 'utf8').replaceAll(/"(void|@void\/md)": "[^"]+"/g, `"$1": "${version}"`));
   }
@@ -163,6 +171,6 @@ else if (command === 'generate') generate();
 else if (command === 'check') check();
 else if (command === 'report') report();
 else {
-  console.error('usage: run.mjs sync <tag> | generate | check | report');
+  console.error('usage: run.ts sync <tag> | generate | check | report');
   process.exit(2);
 }

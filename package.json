@@ -3,12 +3,16 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "port": "node tools/port/run.mjs",
-    "check:port": "node tools/port/run.mjs check",
+    "port": "node tools/port/run.ts",
+    "check:port": "node tools/port/run.ts check",
     "build": "pnpm --filter void-preact build",
-    "typecheck": "pnpm --filter void-preact typecheck",
+    "typecheck": "pnpm --filter void-preact typecheck && pnpm typecheck:tools",
     "test": "vp test run --project unit",
-    "test:integration": "vp test run --project integration"
+    "test:integration": "vp test run --project integration",
+    "test:comparison": "pnpm typecheck:tools && node test/comparison/run.ts",
+    "test:comparison:unit": "node --test test/comparison/*.test.ts",
+    "check:suspense": "node tools/ci/check-suspense-support.ts",
+    "typecheck:tools": "tsc --noEmit --project tsconfig.tools.json"
   },
   "devDependencies": {
     "cross-spawn": "^7.0.6",
@@ -17,7 +21,9 @@
     "vite": "npm:@voidzero-dev/vite-plus-core@^1.5.0",
     "vite-plus": "^1.5.0",
     "react": "workspace:*",
-    "react-dom": "workspace:*"
+    "react-dom": "workspace:*",
+    "typescript": "^6.0.3",
+    "@types/node": "^24.0.0"
   },
   "packageManager": "pnpm@12.16.1"
 }

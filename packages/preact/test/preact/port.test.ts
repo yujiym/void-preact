@@ -3,6 +3,7 @@ import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, renameS
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { expect, it } from 'vite-plus/test';
+import config from '../../../../tools/port/config.ts';
 
 const ROOT = join(import.meta.dirname, '..', '..', '..', '..');
 
@@ -16,22 +17,22 @@ it('checks and removes stale generated files while preserving hand tests and ign
     const result = spawnSync('git', args, { cwd: dir, encoding: 'utf8' });
     expect(result.status, result.stderr).toBe(0);
   };
-  const run = (command: string) => spawnSync(process.execPath, ['tools/port/run.mjs', command], {
+  const run = (command: string) => spawnSync(process.execPath, ['tools/port/run.ts', command], {
     cwd: dir,
     encoding: 'utf8',
   });
 
   try {
-    write('tools/port/config.mjs', `export default ${JSON.stringify({
+    write('tools/port/config.ts', `export default ${JSON.stringify({
       generate: [
         ['test/', 'test/'],
         ['packages/react/test/', 'packages/preact/test/'],
         ['playground/react-pages/', 'playground/preact-pages/'],
       ],
-      preserved: ['test/preact/', 'packages/preact/test/preact/'],
+      preserved: config.preserved,
       rewrites: [], dropped: [], testRewrites: [], divergences: [], mechanical: [], ported: [],
     })};\n`);
-    copyFileSync(join(ROOT, 'tools/port/run.mjs'), join(dir, 'tools/port/run.mjs'));
+    copyFileSync(join(ROOT, 'tools/port/run.ts'), join(dir, 'tools/port/run.ts'));
     write('upstream.json', JSON.stringify({ tag: 'fixture' }));
     write('.gitignore', 'node_modules\ndist\n.void\n');
     write('upstream/test/deleted helper.ts');
@@ -41,6 +42,9 @@ it('checks and removes stale generated files while preserving hand tests and ign
     write('tools/port/overlay/playground/preact-pages/overlay.tsx');
     write('tools/port/overlay/packages/preact/test/preact/hand.test.ts', 'overlay\n');
     write('test/preact/hand.test.ts');
+    write('test/comparison/hand.test.ts');
+    write('test/fixtures/react-stub/react/index.js');
+    write('test/fixtures/md-host/package.json');
     write('packages/preact/test/preact/hand.test.ts');
     git('init', '--quiet');
 
@@ -80,6 +84,9 @@ it('checks and removes stale generated files while preserving hand tests and ign
     expect(readFileSync(join(dir, 'packages/preact/test/new.test.ts'), 'utf8')).toBe('fixture\n');
     for (const path of [
       'test/preact/hand.test.ts',
+      'test/comparison/hand.test.ts',
+      'test/fixtures/react-stub/react/index.js',
+      'test/fixtures/md-host/package.json',
       'packages/preact/test/preact/hand.test.ts',
       'playground/preact-pages/node_modules/cached.js',
       'packages/preact/test/.void/cache.json',

@@ -1,5 +1,19 @@
+export interface PortConfig {
+  repo: string;
+  snapshot: string[];
+  rewrites: [string | RegExp, string][];
+  generate: [string, string][];
+  preserved: string[];
+  sourceRewrites: [string | RegExp, string][];
+  mechanical: string[];
+  ported: string[];
+  dropped: string[];
+  testRewrites: { file: string; from: string; to: string; reason: string }[];
+  divergences: { file: string; title: string; reason: string }[];
+}
+
 // Everything that says how this repo differs from packages/react lives here.
-export default {
+const config: PortConfig = {
   repo: 'https://github.com/voidzero-dev/void.git',
 
   // Copied verbatim into upstream/ at the pinned tag.
@@ -36,7 +50,7 @@ export default {
   ],
 
   // Hand-owned paths inside generated roots. Ignored files are also preserved.
-  preserved: ['test/preact/', 'packages/preact/test/preact/'],
+  preserved: ['test/preact/', 'test/comparison/', 'test/fixtures/', 'packages/preact/test/preact/'],
 
   // Upstream source files, by how this repo tracks them.
   // mechanical: must equal the upstream file after `sourceRewrites`. CI enforces it.
@@ -101,19 +115,19 @@ export default {
     {
       file: 'packages/preact/test/integration/md-layout-frontmatter.test.ts',
       from: "{ 'void-preact': join(import.meta.dirname, '../../src/runtime/index.ts') }",
-      to: "[{ find: /^(void-preact|@void\\/react)$/, replacement: join(import.meta.dirname, '../../src/runtime/index.ts') }]",
-      reason: '@void/md imports @void/react, and subpaths of void-preact must still resolve.',
+      to: "[{ find: /^void-preact\\/islands-client$/, replacement: join(import.meta.dirname, '../../src/runtime/islands-client.ts') }, { find: /^(void-preact|@void\\/react)$/, replacement: join(import.meta.dirname, '../../src/runtime/index.ts') }]",
+      reason: 'This test imports adapter source. The island bootstrap must also resolve to source so Markdown and islands share their frontmatter context.',
     },
     {
       file: 'test/island-css-build.ts',
       from: "'../packages/md/dist/plugin.mjs'",
-      to: "'../tools/md-host/node_modules/@void/md/dist/plugin.mjs'",
+      to: "'./fixtures/md-host/node_modules/@void/md/dist/plugin.mjs'",
       reason: 'This repo uses the published @void/md.',
     },
     {
       file: 'packages/preact/test/integration/md-layout-frontmatter.test.ts',
       from: "'../../../md/src/plugin.ts'",
-      to: "'../../../../tools/md-host/node_modules/@void/md/dist/plugin.mjs'",
+      to: "'../../../../test/fixtures/md-host/node_modules/@void/md/dist/plugin.mjs'",
       reason: 'This repo uses the published @void/md.',
     },
     {
@@ -174,3 +188,5 @@ export default {
     },
   ],
 };
+
+export default config;

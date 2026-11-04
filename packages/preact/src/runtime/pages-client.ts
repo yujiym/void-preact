@@ -6,6 +6,7 @@ import {
   useLayoutEffect,
   useMemo,
   useReducer,
+  useRef,
   useState,
 } from 'preact/hooks';
 import {
@@ -333,7 +334,7 @@ function RouteResource({
   }
   const outerRouter = useContext(RouterContext);
   useLayoutEffect(() => {
-    SettledSuspense.whenSettled(() => onCommit(resource, result));
+    return SettledSuspense.whenSettled(() => onCommit(resource, result));
   }, [onCommit, resource, result]);
 
   const pageData = result.pageData as PreactPageData;
@@ -455,6 +456,16 @@ function App({
     routeUrl: currentUrl(),
     navigation: idleNavigationState(),
   });
+  const boundary = useRef<SettledSuspense | null>(null);
+  const boundaryIdentity = useRef({ resource: initialResource, generation: 0 });
+  if (boundaryIdentity.current.resource !== state.resource) {
+    boundaryIdentity.current.resource = state.resource;
+    // Preact parks a suspended boundary's children until its old promise settles.
+    // Replace only that boundary so navigation can reveal a different resource.
+    if (boundary.current?.isPending) {
+      boundaryIdentity.current.generation++;
+    }
+  }
 
   const finishNavigation = useCallback(
     (resource: PreactPageResource, result: PageNavigationResult) => {
@@ -681,9 +692,11 @@ function App({
     h(
       NavigationContext.Provider,
       { value: state.navigation },
-      h(
+      h<SettledSuspense['props']>(
         SettledSuspense,
         {
+          key: boundaryIdentity.current.generation,
+          ref: boundary,
           fallback:
             NavigationFallback && state.pendingId !== null
               ? h(NavigationFallback, { initialPageData })

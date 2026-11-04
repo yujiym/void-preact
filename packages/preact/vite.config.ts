@@ -2,7 +2,7 @@ import { defineConfig } from 'vite-plus';
 
 export default defineConfig({
   pack: {
-    entry: ['src/index.ts', 'src/plugin.ts', 'src/runtime/pages-client.ts', 'src/runtime/pages-server.ts', 'src/runtime/settled-suspense.ts'],
+    entry: ['src/index.ts', 'src/plugin.ts', 'src/runtime/pages-client.ts', 'src/runtime/pages-server.ts', 'src/runtime/islands-client.ts'],
     format: 'esm',
     dts: true,
     clean: true,

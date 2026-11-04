@@ -7,7 +7,7 @@ import { createServer } from 'vite';
 import { expect, it } from 'vite-plus/test';
 import { waitForIslandsHydrated } from '../../../../test/browser-helpers.ts';
 import { openIslandPage, type IslandPageVisit } from '../../../../test/island-page-browser.ts';
-import { voidMarkdown } from '../../../../tools/md-host/node_modules/@void/md/dist/plugin.mjs';
+import { voidMarkdown } from '../../../../test/fixtures/md-host/node_modules/@void/md/dist/plugin.mjs';
 import { islandsPlugin } from '../../src/plugin-islands.ts';
 
 const ISLAND_FRONTMATTER_SCRIPT =
@@ -40,7 +40,7 @@ export default function Layout({ children }) {
     logLevel: 'silent',
     appType: 'custom',
     server: { middlewareMode: true, ws: false },
-    resolve: { alias: [{ find: /^(void-preact|@void\/react)$/, replacement: join(import.meta.dirname, '../../src/runtime/index.ts') }] },
+    resolve: { alias: [{ find: /^void-preact\/islands-client$/, replacement: join(import.meta.dirname, '../../src/runtime/islands-client.ts') }, { find: /^(void-preact|@void\/react)$/, replacement: join(import.meta.dirname, '../../src/runtime/index.ts') }] },
     // The Markdown plugin picks its output from the adapter's pages plugin name.
     plugins: [...voidMarkdown(), { name: 'void-react:pages' }, ...islandsPlugin(pages)],
   });
@@ -89,7 +89,7 @@ export default function Title() {
   let visit: IslandPageVisit | undefined;
   try {
     visit = await openIslandPage(root, {
-      alias: [{ find: /^(void-preact|@void\/react)$/, replacement: join(import.meta.dirname, '../../src/runtime/index.ts') }],
+      alias: [{ find: /^void-preact\/islands-client$/, replacement: join(import.meta.dirname, '../../src/runtime/islands-client.ts') }, { find: /^(void-preact|@void\/react)$/, replacement: join(import.meta.dirname, '../../src/runtime/index.ts') }],
       plugins: [
         ...voidMarkdown(),
         { name: 'void-react:pages' },
@@ -137,7 +137,7 @@ title: Hello from frontmatter
   let visit: IslandPageVisit | undefined;
   try {
     visit = await openIslandPage(root, {
-      alias: [{ find: /^(void-preact|@void\/react)$/, replacement: join(import.meta.dirname, '../../src/runtime/index.ts') }],
+      alias: [{ find: /^void-preact\/islands-client$/, replacement: join(import.meta.dirname, '../../src/runtime/islands-client.ts') }, { find: /^(void-preact|@void\/react)$/, replacement: join(import.meta.dirname, '../../src/runtime/index.ts') }],
       plugins: [
         ...voidMarkdown(),
         { name: 'void-react:pages' },

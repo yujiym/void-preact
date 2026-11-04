@@ -12,6 +12,13 @@ on:
         type: boolean
         default: false
 
+  workflow_call:
+    inputs:
+      windows:
+        description: Include Windows development checks.
+        type: boolean
+        default: false
+
 permissions:
   contents: read
 

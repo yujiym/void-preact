@@ -91,7 +91,7 @@ Upstream sync runs weekly on Tuesday at 06:00 JST (Monday 21:00 UTC), or manuall
 
 Build, typecheck, unit and upstream integration tests always run on Linux. Windows runs on main pushes and PRs labeled `test: windows`; manual CI runs can also enable Windows. Packed-consumer and comparison tests run on Linux with Chromium.
 
-The manually dispatched npm publish workflow takes a successful main-push CI run ID and publishes its exact tested tarball, then creates a version tag and GitHub release with compatibility details and evidence. It reuses CI evidence without rerunning tests. npm trusted publishing and the GitHub `npm` environment must be configured first; see [release setup and procedure](DESIGN.md#releasing). Updating the package version and reviewing compatibility changes remain maintainer actions.
+The manually dispatched npm publish workflow calls the shared CI with Windows enabled, then publishes the exact tested tarball from that same workflow run. It creates a version tag and GitHub release with compatibility details and evidence. npm trusted publishing and the GitHub `npm` environment must be configured first; see [release setup and procedure](DESIGN.md#releasing). Updating the package version and reviewing compatibility changes remain maintainer actions.
 
 ## License
 

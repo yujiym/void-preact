@@ -3,10 +3,6 @@ name: npm publish
 on:
   workflow_dispatch:
     inputs:
-      ci_run_id:
-        description: Successful main-push CI run ID for the selected commit.
-        required: true
-        type: string
       notes:
         description: Release changes and migration steps (Markdown).
         required: true
@@ -20,13 +16,18 @@ permissions:
   contents: read
 
 jobs:
-  publish:
+  verify:
     if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/ci.yml
+    with:
+      windows: true
+
+  publish:
+    needs: verify
     runs-on: ubuntu-latest
     environment: npm
     permissions:
       contents: write
-      actions: read
       id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -35,20 +36,10 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version-file: .node-version
-      - name: Verify the successful CI run belongs to this main commit
-        env:
-          GH_TOKEN: ${{ github.token }}
-          CI_RUN_ID: ${{ inputs.ci_run_id }}
-        run: |
-          [[ "$CI_RUN_ID" =~ ^[0-9]+$ ]]
-          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CI_RUN_ID" > ci-run.json
-          node tools/ci/verify-release-ci.ts ci-run.json
       - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
         with:
           name: behavior-comparison-${{ github.sha }}
           path: evidence
-          run-id: ${{ inputs.ci_run_id }}
-          github-token: ${{ github.token }}
       - id: package
         env:
           RELEASE_NOTES: ${{ inputs.notes }}
@@ -80,4 +71,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.package.outputs.tag }}
         run: |
-          gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --notes-file release/release-notes.md release/*.tgz release/report.md release/report.json release/SHA256SUMS ci-run.json
+          gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --notes-file release/release-notes.md release/*.tgz release/report.md release/report.json release/SHA256SUMS

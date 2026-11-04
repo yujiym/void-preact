@@ -32,6 +32,9 @@ The tree has the shape of the upstream one, so upstream test files keep their re
 | `testRewrites` | An edit that keeps an upstream assertion meaningful, with a reason | Generation fails if the text is gone upstream |
 | `divergences` | An upstream test this adapter skips, with a reason | Generation fails if the title is gone upstream |
 | `dropped` | Generated paths this repo removes | Listed for review |
+| `preserved` | Hand-owned directories inside generated roots | Neither generation nor stale-file cleanup writes there |
+
+Generation removes stale nonignored files within its owned output directories, and `check` rejects them before regeneration. Git-ignored caches and build artifacts are excluded from cleanup.
 
 Upstream source that is in neither `mechanical` nor `ported` fails `check`, so a new upstream file cannot be missed.
 
@@ -39,7 +42,7 @@ Upstream source that is in neither `mechanical` nor `ported` fails `check`, so a
 
 Upstream tests import `react` directly. `tools/react-stub` holds workspace packages named `react` and `react-dom` that re-export `preact/compat`, so the tests run as written, including those that start their own Vite server. The stub's `act` waits for pending work the way React's does. The stubs are dev-only and are never published. Playground pages reach Preact through the alias that `@preact/preset-vite` installs.
 
-`test/preact/api-surface.test.ts` compares the exports of `runtime/index.ts` with the upstream file. Its allowed additions are `Suspense`, `use`, and `useFormStatus`, because `preact/compat` lacks or is the only source of them.
+`packages/preact/test/preact/api-surface.test.ts` compares the exports of `runtime/index.ts` with the upstream file. Its allowed additions are `Suspense`, `use`, and `useFormStatus`, to expose Suspense and use from preact/compat and the adapter’s own useFormStatus.
 
 ## Runtime differences from React
 
@@ -57,11 +60,11 @@ These are the choices forced by what Preact 11 does not have.
 
 **The engine starts before hydration.** Preact renders synchronously, so `engine.start()` moves ahead of `hydrate()`. React scheduled its render for later, which gave the same order.
 
-**HMR needs no preamble.** Prefresh injects its setup in a module transform, so the React Refresh preamble is gone.
+**HMR needs no preamble.** Prefresh injects its setup in a module transform, so the React Refresh preamble is gone. The Worker optimizer pre-includes `preact/devtools`, which the preset injects after scanning. Discovering it during SSR would reload the Worker and mix hooks and renderer instances.
 
 ## Void core selects adapters by plugin name
 
-`@void/md` (`packages/md/src/plugin.ts`) and the auth client path (`packages/void/src/plugin-routing.ts`) read a fixed list of plugin names. `plugin.ts` adds a marker plugin named `void-react:pages` and aliases `@void/react` to `void-preact`, so the React code they select runs on Preact. The marker depends on upstream internals, and the upstream `md-layout-frontmatter` and `island-css-build` tests are what catch it breaking. `void init` still does not offer Preact.
+`@void/md` (`packages/md/src/plugin.ts`) and the auth client path (`packages/void/src/plugin-routing.ts`) read a fixed list of plugin names. `plugin.ts` adds a marker plugin named `void-react:pages` and aliases `@void/react` to `void-preact`, so the React code they select runs on Preact. Both package names are excluded from dependency optimization to preserve shared contexts. The browser optimizer pre-includes `void > better-auth/react` because Void selects that auth adapter after scanning. The marker depends on upstream internals, and the upstream `md-layout-frontmatter` and `island-css-build` tests are what catch it breaking. `void init` still does not offer Preact.
 
 ## Preact behavior this adapter works around
 
@@ -93,3 +96,45 @@ These are the choices forced by what Preact 11 does not have.
 **Git submodule for upstream.** A sync PR would show a SHA bump instead of the upstream diff, which is the thing a reviewer needs.
 
 **Hand-copied tests.** They drift silently, and nothing records why a test differs.
+
+## Updating Void
+
+Use Node from `.node-version` and the package manager in `package.json`. Install with `pnpm install --frozen-lockfile`.
+
+The weekly sync workflow opens one branch per upstream tag. GitHub must allow Actions to create pull requests in the repository's Actions settings. Its bot-created pull request does not trigger the normal PR workflow, so it explicitly dispatches CI on that branch. A failed sync step needs manual attention in the workflow log. It does not indicate that the current release has stopped working.
+
+To update locally on a clean branch:
+
+```sh
+pnpm port sync vX.Y.Z
+pnpm install --no-frozen-lockfile
+pnpm port report
+pnpm check:port
+pnpm build
+pnpm typecheck
+pnpm test
+pnpm test:integration
+node tools/ci/packed-consumer.mjs
+```
+
+Review each changed handwritten source listed by `report` against its upstream counterpart. Classify new upstream source in `tools/port/config.mjs`. Fix stale test rewrites there and keep their reasons specific. Change replacement pages in `tools/port/overlay`, then regenerate. Update the README API table when an observable difference changes. Review the upstream snapshot diff as well as generated output before merging.
+
+The packed consumer checks SSR and Markdown frontmatter, hydrates native Preact hooks, and observes session changes through `auth.useSession()` imported from `void/client` in dev and preview. Its session endpoint is intercepted by Playwright. This proves the React auth client integration with Preact; it does not test an identity provider or a production login backend. In dev, it also edits a page and checks that HMR preserves hook state without reloading the document.
+
+## Releasing
+
+Keep the package's version independent of Void's exact peer version. Increment `packages/preact/package.json` using semver, update the lockfile with `pnpm install --no-frozen-lockfile`, and describe the change in the GitHub release notes. Before publishing, run the update checks above on the final commit and require CI to pass.
+
+```sh
+pnpm --filter void-preact pack --pack-destination /tmp
+```
+
+Packing rebuilds the package, checks that each public export has its runtime and declaration files, and includes the root README and license. Inspect the resulting archive with `tar -tzf /tmp/void-preact-VERSION.tgz`. It must contain `package/dist`, `package/package.json`, `package/README.md`, and `package/LICENSE`, without workspace tests or React stubs.
+
+An npm account with publishing rights to `void-preact` must publish the verified archive. Check name ownership before the first release. Publishing is a separate operator action:
+
+```sh
+npm publish /tmp/void-preact-VERSION.tgz --access public
+```
+
+Create a matching `vVERSION` Git tag and GitHub release from the verified commit after publication. Record the supported Void version and compatibility changes in its notes. If a published version is faulty, deprecate it and publish a corrected patch; do not reuse its version number.

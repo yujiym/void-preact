@@ -29,6 +29,8 @@ const PREACT_OPTIMIZE_DEPS = [
 ];
 const WORKER_OPTIMIZE_DEPS = [
   ...PREACT_OPTIMIZE_DEPS,
+  // The preset injects this import after dependency scanning.
+  'preact/devtools',
   'preact-render-to-string',
   'preact-render-to-string/stream',
   'void/live/client',
@@ -62,7 +64,7 @@ export function pagesPlugin(pagesDir: string, options?: PagesPluginOptions): Plu
             dedupe: PREACT_DEDUPE,
           },
           optimizeDeps: {
-            exclude: ['void-preact'],
+            exclude: ['void-preact', '@void/react'],
             // Crawl page modules before the first client request so third-party
             // imports are pre-bundled instead of triggering a full reload.
             entries: clientOptimizeEntries(await scan(), pagesDir, root),
@@ -71,7 +73,13 @@ export function pagesPlugin(pagesDir: string, options?: PagesPluginOptions): Plu
             // optimizer. void/pages-client and void/pages-prefetch are reached
             // only through virtual entries and this excluded package, so the
             // scanner cannot see them.
-            include: [...PREACT_OPTIMIZE_DEPS, 'void/pages-client', 'void/pages-prefetch'],
+            include: [
+              ...PREACT_OPTIMIZE_DEPS,
+              'void/pages-client',
+              'void/pages-prefetch',
+              // void/client selects this adapter after dependency scanning.
+              'void > better-auth/react',
+            ],
           },
           ssr: {
             optimizeDeps: {
@@ -81,7 +89,7 @@ export function pagesPlugin(pagesDir: string, options?: PagesPluginOptions): Plu
           environments: {
             [WORKER_ENVIRONMENT_NAME]: {
               optimizeDeps: {
-                exclude: ['void-preact'],
+                exclude: ['void-preact', '@void/react'],
                 // Crawl page/layout modules before the first Worker request.
                 // If the worker optimizer discovers component deps while SSR is
                 // already rendering, the program reload can mix Preact and its

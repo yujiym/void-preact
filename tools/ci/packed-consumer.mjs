@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { chromium } from 'playwright';
+import { randomBytes } from 'node:crypto';
 
 const ROOT = join(import.meta.dirname, '..', '..');
 const app = mkdtempSync(join(tmpdir(), 'void-preact-consumer-'));
@@ -69,6 +71,20 @@ export default function Docs({ children }: { children?: unknown }) {
 `,
 );
 
+writeFileSync(join(app, 'pages/check.tsx'), `import { useState } from 'preact/hooks';
+import { auth } from 'void/client';
+export default function Check() {
+  const [count, setCount] = useState(0);
+  const session = auth.useSession();
+  return <main><h1 id="hmr">before edit</h1>
+    <button id="count" onClick={() => setCount(count + 1)}>{count}</button>
+    <output id="session">{session.isPending ? 'loading' : session.data?.user.name ?? 'signed out'}</output>
+    <button id="refetch" onClick={() => session.refetch()}>refetch</button></main>;
+}
+`);
+
+writeFileSync(join(app, '.env'), 'BETTER_AUTH_SECRET=' + randomBytes(32).toString('hex') + '\n');
+
 run('pnpm', ['install']);
 run('pnpm', ['exec', 'vite', 'build']);
 
@@ -106,6 +122,50 @@ async function assertPages(read) {
   assert.match(markdown, /<h2>About<\/h2>/, 'useFrontmatter reads the page frontmatter in a layout');
 }
 
-await serve(['preview'], assertPages);
-await serve(['dev'], assertPages);
+const browser = await chromium.launch();
+try {
+  for (const mode of ['preview', 'dev']) {
+    await serve([mode], async (read) => {
+      await assertPages(read);
+      const page = await browser.newPage();
+      const errors = [];
+      page.on('pageerror', (error) => errors.push(error.message));
+      let signedIn = false;
+      await page.route('**/api/auth/get-session**', (route) => route.fulfill({
+        json: signedIn ? {
+          user: { id: 'user-1', name: 'Ada', email: 'ada@example.com', emailVerified: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+          session: { id: 'session-1', userId: 'user-1', token: 'test-token', expiresAt: new Date(Date.now() + 3600000).toISOString(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        } : null,
+      }));
+      try {
+        await page.goto('http://localhost:4780/check');
+        await page.waitForSelector('#app[data-hydrated="true"]');
+        await page.waitForFunction(() => document.querySelector('#session')?.textContent === 'signed out');
+        signedIn = true;
+        await page.click('#refetch');
+        await page.waitForFunction(() => document.querySelector('#session')?.textContent === 'Ada');
+        signedIn = false;
+        await page.click('#refetch');
+        await page.waitForFunction(() => document.querySelector('#session')?.textContent === 'signed out');
+        await page.click('#count');
+        await page.click('#count');
+        assert.equal(await page.textContent('#count'), '2', 'native Preact hooks hydrate');
+        if (mode === 'dev') {
+          const source = join(app, 'pages/check.tsx');
+          await page.evaluate(() => { window.hmrMarker = 'preserved'; });
+          writeFileSync(source, readFileSync(source, 'utf8').replace('before edit', 'after edit'));
+          await page.waitForFunction(() => document.querySelector('#hmr')?.textContent === 'after edit');
+          assert.equal(await page.textContent('#count'), '2', 'HMR preserves hook state');
+          assert.equal(await page.evaluate(() => window.hmrMarker), 'preserved', 'HMR avoids page reload');
+        }
+        assert.deepEqual(errors, [], 'no browser runtime errors');
+        console.log(mode + ': hydration, auth session updates, and hooks ok');
+      } finally {
+        await page.close();
+      }
+    });
+  }
+} finally {
+  await browser.close();
+}
 console.log('packed consumer ok');

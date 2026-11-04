@@ -208,11 +208,11 @@ function defineClientTests(getBase: () => string, coverage: 'smoke' | 'full' = '
 }
 
 function defineTransitionAwaitTests(getBase: () => string) {
-  describe.skip('React action completion', { retry: 0 }, () => {
-    const cases = ['transition', 'form-action', 'action-state', 'plain', 'use-form'] as const;
+  describe.concurrent('React action completion', { retry: 0 }, () => {
+    const cases = ['form-action', 'plain', 'use-form'] as const;
 
     for (const operation of ['visit', 'refresh'] as const) {
-      it.for(['transition', 'form-action', 'action-state', 'plain'] as const)(
+      it.for(['form-action', 'plain'] as const)(
         `router.${operation} with resolveOn data resolves when awaited from %s`,
         async (mode, { expect }) => {
           const context = await browser.newContext();
@@ -313,7 +313,7 @@ function defineTransitionAwaitTests(getBase: () => string) {
       }
     });
 
-    it.for(['action', 'visit', 'refresh'] as const)(
+    it.skip.for(['action', 'visit', 'refresh'] as const)(
       '%s preserves optimistic state and stays pending through the Action and Suspense',
       async (operation, { expect }) => {
         const context = await browser.newContext();

@@ -35,6 +35,9 @@ export default {
     ['playground/react-pages/', 'playground/preact-pages/'],
   ],
 
+  // Hand-owned paths inside generated roots. Ignored files are also preserved.
+  preserved: ['test/preact/', 'packages/preact/test/preact/'],
+
   // Upstream source files, by how this repo tracks them.
   // mechanical: must equal the upstream file after `sourceRewrites`. CI enforces it.
   // ported: hand-written. A change upstream is flagged for review on sync.
@@ -66,15 +69,29 @@ export default {
   ],
 
   // Paths under generate targets that this repo replaces from tools/port/overlay or drops.
-  // transition-await exercises useActionState and useOptimistic, which Preact does not have.
-  dropped: [
-    'playground/preact-pages/pages/transition-await.tsx',
-    'playground/preact-pages/pages/transition-await.server.ts',
-  ],
+  dropped: [],
 
   // Edits that keep an upstream assertion meaningful under Preact.
   // { file: generated path, from, to, reason }
   testRewrites: [
+    {
+      file: 'packages/preact/test/integration/preact-pages-client.test.ts',
+      from: "it.for(['transition', 'form-action', 'action-state', 'plain'] as const)",
+      to: "it.for(['form-action', 'plain'] as const)",
+      reason: 'Preact transitions have no pending state, and useActionState is unavailable. The overlay covers the remaining cases.',
+    },
+    {
+      file: 'packages/preact/test/integration/preact-pages-client.test.ts',
+      from: "const cases = ['transition', 'form-action', 'action-state', 'plain', 'use-form'] as const;",
+      to: "const cases = ['form-action', 'plain', 'use-form'] as const;",
+      reason: 'Preact transitions have no pending state, and useActionState is unavailable. The overlay covers the remaining cases.',
+    },
+    {
+      file: 'packages/preact/test/integration/preact-pages-client.test.ts',
+      from: "it.for(['action', 'visit', 'refresh'] as const)(\n      '%s preserves optimistic",
+      to: "it.skip.for(['action', 'visit', 'refresh'] as const)(\n      '%s preserves optimistic",
+      reason: 'Asserts useOptimistic and a held old page during a transition. Preact has neither.',
+    },
     {
       file: 'packages/preact/test/integration/md-layout-frontmatter.test.ts',
       from: "{ name: 'void-preact:pages' }",
@@ -116,12 +133,6 @@ export default {
       from: "from 'react-dom'",
       to: "from 'void-preact'",
       reason: 'preact/compat has no useFormStatus. void-preact provides it.',
-    },
-    {
-      file: 'packages/preact/test/integration/preact-pages-client.test.ts',
-      from: "describe.concurrent('React action completion', { retry: 0 }",
-      to: "describe.skip('React action completion', { retry: 0 }",
-      reason: 'Covers React Actions and transitions through transition-await, which Preact does not have.',
     },
     {
       file: 'packages/preact/test/unit/link.test.ts',

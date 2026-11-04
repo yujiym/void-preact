@@ -30,7 +30,9 @@ jobs:
       - uses: ./.github/actions/setup
       - run: pnpm build
       - run: pnpm typecheck
-      - run: pnpm test
+      - run: pnpm test --reporter=default --reporter=json --outputFile=artifacts/unit.json
+      - if: always()
+        run: node tools/ci/test-summary.mjs 'Unit tests' artifacts/unit.json
 
   integration:
     name: upstream contract in a browser
@@ -43,7 +45,9 @@ jobs:
         with:
           browser: 'true'
       - run: pnpm build
-      - run: pnpm test:integration
+      - run: pnpm test:integration --reporter=default --reporter=json --outputFile=artifacts/integration.json
+      - if: always()
+        run: node tools/ci/test-summary.mjs 'Browser contract tests' artifacts/integration.json
 
   packed-consumer:
     name: published tarball works in a fresh app
@@ -54,4 +58,5 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/setup
       - run: pnpm build
+      - run: vp exec playwright install --with-deps chromium
       - run: node tools/ci/packed-consumer.mjs

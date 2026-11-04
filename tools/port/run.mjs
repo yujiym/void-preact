@@ -21,6 +21,7 @@ function walk(dir) {
 }
 
 const isText = (path) => !/\.(woff2?|png|jpe?g|ico|gif)$/.test(path);
+const isPreserved = (path) => config.preserved.some((prefix) => path.startsWith(prefix));
 
 function rewrite(text) {
   return config.rewrites.reduce((out, [from, to]) => out.replaceAll(from, to), text);
@@ -50,7 +51,7 @@ function expectedFiles() {
     for (const abs of walk(join(UPSTREAM, from))) {
       const rel = relative(join(UPSTREAM, from), abs);
       const target = to + rewrite(rel).replace(/(^|\/)react-/, '$1preact-');
-      if (config.dropped.includes(target)) continue;
+      if (config.dropped.includes(target) || isPreserved(target)) continue;
       files.set(
         target,
         isText(abs) ? applyDivergences(target, rewrite(readFileSync(abs, 'utf8'))) : readFileSync(abs),
@@ -58,14 +59,29 @@ function expectedFiles() {
     }
   }
   for (const abs of walk(OVERLAY)) {
-    files.set(relative(OVERLAY, abs), isText(abs) ? readFileSync(abs, 'utf8') : readFileSync(abs));
+    const target = relative(OVERLAY, abs);
+    if (!isPreserved(target)) files.set(target, isText(abs) ? readFileSync(abs, 'utf8') : readFileSync(abs));
   }
   return files;
 }
 
+function staleFiles(expected) {
+  const candidates = execFileSync('git', [
+    '-C', ROOT, 'ls-files', '-z', '--cached', '--others', '--exclude-standard', '--',
+    ...config.generate.map(([, target]) => target),
+  ], { encoding: 'utf8' }).split('\0').filter(Boolean);
+  return [...new Set(candidates)].filter((target) =>
+    !expected.has(target)
+    && !isPreserved(target)
+    && existsSync(join(ROOT, target)),
+  );
+}
+
 function generate() {
+  const expected = expectedFiles();
+  for (const target of staleFiles(expected)) rmSync(join(ROOT, target), { force: true });
   for (const target of config.dropped) rmSync(join(ROOT, target), { force: true });
-  for (const [target, content] of expectedFiles()) {
+  for (const [target, content] of expected) {
     const abs = join(ROOT, target);
     mkdirSync(dirname(abs), { recursive: true });
     writeFileSync(abs, content);
@@ -79,7 +95,9 @@ function mechanicalSource(file) {
 
 function check() {
   const problems = [];
-  for (const [target, content] of expectedFiles()) {
+  const expected = expectedFiles();
+  for (const target of staleFiles(expected)) problems.push(`stale generated file: ${target}`);
+  for (const [target, content] of expected) {
     const abs = join(ROOT, target);
     if (!existsSync(abs)) problems.push(`missing generated file: ${target}`);
     else if (Buffer.compare(readFileSync(abs), Buffer.from(content)) !== 0) {

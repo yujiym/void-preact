@@ -85,8 +85,8 @@ These are the choices forced by what Preact 11 does not have.
 | Workflow | Job | What it proves |
 | --- | --- | --- |
 | `ci.yml` | `port` | Generated files, mechanical source, and classification match the pinned snapshot |
-| `ci.yml` | `checks` | Build, strict typecheck including all adapter tests, upstream and own unit tests on Linux and Windows |
-| `ci.yml` | `integration` | The upstream shared contract against the playground, in Chromium, in dev and preview on Linux and Windows |
+| `ci.yml` | `checks` | Build, strict typecheck including all adapter tests, upstream and own unit tests on Linux |
+| `ci.yml` | `integration` | The upstream shared contract against the playground, in Chromium, in dev and preview on Linux |
 | `ci.yml` | `packed-consumer` | The packed tarball builds and server-renders in a fresh app outside the workspace |
 | `ci.yml` | `comparison` | Shared behavioral and private-Suspense maintenance cases against real installed React and packed Preact, in dev and preview |
 | `upstream-sync.yml` | `sync` | Weekly, opens a PR for a new Void release with the upstream diff and ported files to review, then dispatches full CI |
@@ -141,7 +141,7 @@ One-time operator setup:
 - In npm's trusted publisher settings for `void-preact`, register owner `yujiym`, repository `void-preact`, workflow `release.yml`, and environment `npm`. The workflow uses OIDC, without an npm token. See [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/).
 - Before the first release, confirm package name ownership. If the package does not yet exist, an authorized npm operator must bootstrap its first publication and then configure trusted publishing. Do not expect OIDC to claim an unpublished name.
 
-Run the **Release** workflow manually on `main`, providing release changes and migration notes. It runs the complete CI again on that commit, including Windows checks and Linux packed-consumer/comparison. The comparison job uploads the exact tarball it installed. Publication waits for every verification job to succeed.
+Run the **Release** workflow manually on `main`, providing release changes and migration notes. It runs the complete CI again on that commit, including packed-consumer and comparison tests on Linux. The comparison job uploads the exact tarball it installed. Publication waits for every verification job to succeed.
 
 The publish job downloads evidence from that same run, requires a passing comparison from the clean release commit, and verifies the tarball SHA-256 against the report. It inspects the archive and runs `npm publish --dry-run`, then publishes that archive. It creates `vVERSION` and a GitHub release targeting the verified commit, with the provided notes, a generated compatibility table, `report.md`, `report.json`, the tarball and `SHA256SUMS`. Package creation and publication do not rebuild a different archive after testing.
 

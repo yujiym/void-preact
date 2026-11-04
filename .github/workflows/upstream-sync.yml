@@ -1,0 +1,58 @@
+name: Upstream sync
+
+on:
+  schedule:
+    - cron: '0 21 * * 1'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Upstream tag. Defaults to the latest void release.
+        required: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+        with:
+          browser: 'true'
+      - id: target
+        env:
+          REQUESTED: ${{ inputs.tag }}
+        run: |
+          tag="${REQUESTED:-v$(npm view void version)}"
+          current="$(node -p "require('./upstream.json').tag")"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "changed=$([ "$tag" = "$current" ] && echo false || echo true)" >> "$GITHUB_OUTPUT"
+      - if: steps.target.outputs.changed == 'true'
+        env:
+          TAG: ${{ steps.target.outputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          branch="upstream/$TAG"
+          git ls-remote --exit-code origin "refs/heads/$branch" && exit 0
+          node tools/port/run.mjs sync "$TAG" | tee sync-report.txt
+          pnpm install --no-frozen-lockfile
+          status=passing
+          pnpm build && pnpm typecheck && pnpm test && pnpm test:integration || status=failing
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch -c "$branch"
+          git add -A -- . ':!sync-report.txt'
+          git commit -m "chore: sync upstream void to $TAG"
+          git push origin "$branch"
+          {
+            echo "Syncs \`packages/react\` from void $TAG. Tests are $status at this head."
+            echo
+            echo '```'
+            cat sync-report.txt
+            echo '```'
+          } > pr-body.md
+          gh pr create --title "chore: sync upstream void to $TAG" --body-file pr-body.md
+          gh workflow run ci.yml --ref "$branch"

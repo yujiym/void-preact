@@ -1,0 +1,12 @@
+{
+  "name": "react",
+  "version": "19.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./jsx-runtime": "./jsx-runtime.js",
+    "./jsx-dev-runtime": "./jsx-dev-runtime.js"
+  },
+  "dependencies": { "preact": "^11.1.1", "preact-render-to-string": "^6.8.2" }
+}

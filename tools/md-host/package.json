@@ -1,0 +1,11 @@
+{
+  "name": "md-host",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Holds @void/md outside the node_modules that upstream tests resolve from, as in the upstream monorepo.",
+  "dependencies": {
+    "@void/md": "1.6.1",
+    "vite": "npm:@voidzero-dev/vite-plus-core@^1.5.0",
+    "void": "1.6.1"
+  }
+}

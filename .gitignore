@@ -6,3 +6,8 @@ dist
 artifacts
 .cloudflare
 playground-local
+__tmp_*
+
+.audit/
+packages/preact/README.md
+packages/preact/LICENSE

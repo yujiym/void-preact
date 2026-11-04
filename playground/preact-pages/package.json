@@ -1,0 +1,24 @@
+{
+  "name": "playground-preact-pages",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vp build",
+    "dev": "vp dev",
+    "preview": "vp preview"
+  },
+  "dependencies": {
+    "hono": "^4.13.16",
+    "preact": "^11.1.1",
+    "preact-render-to-string": "^6.8.2",
+    "valibot": "^1.5.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.28.0",
+    "void-preact": "workspace:*",
+    "typescript": "^6.0.3",
+    "vite": "npm:@voidzero-dev/vite-plus-core@^1.5.0",
+    "vite-plus": "^1.5.0",
+    "void": "1.6.1"
+  }
+}

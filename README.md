@@ -1,0 +1,67 @@
+# void-preact
+
+[![CI](https://github.com/yujiym/void-preact/actions/workflows/ci.yml/badge.svg)](https://github.com/yujiym/void-preact/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/void-preact)](https://www.npmjs.com/package/void-preact)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+Preact adapter for [Void](https://void.cloud), ported from `@void/react`. Build server-rendered pages with typed server loaders, forms, layouts, and interactive islands, and write `class` instead of `className`.
+
+## Setup
+
+```sh
+pnpm add preact preact-render-to-string
+pnpm add -D void-preact void @babel/core
+```
+
+```ts
+import { voidPreact } from 'void-preact/plugin';
+import { defineConfig } from 'vite';
+import { voidPlugin } from 'void';
+
+export default defineConfig({
+  plugins: [voidPlugin(), voidPreact()],
+});
+```
+
+```json
+{ "compilerOptions": { "jsx": "react-jsx", "jsxImportSource": "preact" } }
+```
+
+## API
+
+The API is the one in the [Void Pages documentation](https://void.cloud/guide/pages-routing/overview), imported from `void-preact`. `react` and `react-dom` imports resolve to `preact/compat`, so third-party React components work to the extent `preact/compat` supports them.
+
+| API | Status | Notes |
+| --- | --- | --- |
+| `@void/react` runtime export names | Same | A test compares exported names with upstream. `voidReact` becomes `voidPreact`, and its `react` option becomes `preact`. |
+| `use`, `Suspense` | Available | Also exported from `void-preact`. |
+| `useFormStatus` | Available | Import it from `void-preact`, not `react-dom`. |
+| `<form action={fn}>` | Available | Uncontrolled fields do not reset after the action. |
+| `useTransition`, `startTransition` | Differs | Never pending. The callback runs at once. |
+| `useActionState`, `useOptimistic` | Missing | The build fails on the import. |
+| A page that suspends with no `<Suspense>` of its own | Differs | Renders nothing while it waits. React holds the previous page. |
+| `onCaughtError` root option | Missing | Error boundaries still work. |
+
+## Compatibility
+
+`void-preact` peers on one exact `void` version, because it imports adapter-facing Void entries that change between releases.
+
+## Development
+
+This repo follows `packages/react` in the Void monorepo. See [docs/design.md](docs/design.md) for the design, upstream updates, and release steps. CI summaries show the test totals for each run.
+
+```sh
+pnpm install
+pnpm check:port        # generated files match the pinned upstream snapshot
+pnpm build
+pnpm typecheck
+pnpm test
+pnpm test:integration
+node tools/ci/packed-consumer.mjs
+```
+
+Never edit `upstream/` or generated files. Change `tools/port/config.mjs`, then run `pnpm port generate`. To move to a new Void release, run `pnpm port sync <tag>`.
+
+## License
+
+MIT. Derived from Void, copyright Cloudflare, Inc.

@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  port:
+    name: upstream parity is recorded
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - run: pnpm check:port
+
+  checks:
+    name: build, typecheck, unit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - run: pnpm build
+      - run: pnpm typecheck
+      - run: pnpm test --reporter=default --reporter=json --outputFile=artifacts/unit.json
+      - if: always()
+        run: node tools/ci/test-summary.mjs 'Unit tests' artifacts/unit.json
+
+  integration:
+    name: upstream contract in a browser
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          browser: 'true'
+      - run: pnpm build
+      - run: pnpm test:integration --reporter=default --reporter=json --outputFile=artifacts/integration.json
+      - if: always()
+        run: node tools/ci/test-summary.mjs 'Browser contract tests' artifacts/integration.json
+
+  packed-consumer:
+    name: published tarball works in a fresh app
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - run: pnpm build
+      - run: vp exec playwright install --with-deps chromium
+      - run: node tools/ci/packed-consumer.mjs

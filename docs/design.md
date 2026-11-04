@@ -59,15 +59,16 @@ These are the choices forced by what Preact 11 does not have.
 
 **HMR needs no preamble.** Prefresh injects its setup in a module transform, so the React Refresh preamble is gone.
 
-## Known gaps in Void core
+## Void core selects adapters by plugin name
 
-Core and `@void/md` find an adapter by plugin name, from a fixed list.
+`@void/md` (`packages/md/src/plugin.ts`) and the auth client path (`packages/void/src/plugin-routing.ts`) read a fixed list of plugin names. `plugin.ts` adds a marker plugin named `void-react:pages` and aliases `@void/react` to `void-preact`, so the React code they select runs on Preact. The marker depends on upstream internals, and the upstream `md-layout-frontmatter` and `island-css-build` tests are what catch it breaking. `void init` still does not offer Preact.
 
-- `packages/md/src/plugin.ts` throws for an unknown adapter, so `@void/md` does not work with `void-preact:pages` as named today.
-- `packages/void/src/plugin-routing.ts` falls back to the default auth client path.
-- `void init` does not offer Preact.
+## Preact behavior this adapter works around
 
-These need an upstream change or a recorded workaround. Nothing has been proposed upstream.
+`runtime/settled-suspense.ts` uses `Suspense.prototype.__c`, a mangled internal that `preact-render-to-string` also depends on.
+
+- Preact runs effects above a suspended child at once, and sets no boundary state during hydration. `SettledSuspense` tracks the root boundary so navigation commits and `data-hydrated` wait for its content, as React's commit does.
+- On resume, Preact hydrates a `$s` range as if it held streamed content. A deferred shell is cut before any streamed content, so the range holds the fallback, and the real content would keep the fallback element's attributes. The adapter empties the range first on deferred pages.
 
 ## CI
 

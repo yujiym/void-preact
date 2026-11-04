@@ -4,7 +4,7 @@ import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { expect, it } from 'vite-plus/test';
 
-const MD_PLUGIN = join(import.meta.dirname, '../packages/md/dist/plugin.mjs');
+const MD_PLUGIN = join(import.meta.dirname, '../tools/md-host/node_modules/@void/md/dist/plugin.mjs');
 
 type IslandCssApp = {
   /** The adapter package directory, e.g. `packages/preact`. */

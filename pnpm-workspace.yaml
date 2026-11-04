@@ -2,6 +2,7 @@ packages:
   - packages/*
   - playground/*
   - tools/react-stub/*
+  - tools/md-host
 allowBuilds:
   esbuild: true
   workerd: true
@@ -22,5 +23,6 @@ minimumReleaseAgeExclude:
   - '@voidzero-dev/vite-plus-win32-x64-msvc@1.5.0'
   - vite-plus@1.5.0
   - void@1.6.1
+  - '@void/md@1.6.1'
 overrides:
   vite: npm:@voidzero-dev/vite-plus-core@^1.5.0

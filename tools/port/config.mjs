@@ -67,9 +67,7 @@ export default {
 
   // Paths under generate targets that this repo replaces from tools/port/overlay or drops.
   // transition-await exercises useActionState and useOptimistic, which Preact does not have.
-  // md-layout-frontmatter needs @void/md, which rejects an adapter outside its fixed list.
   dropped: [
-    'packages/preact/test/integration/md-layout-frontmatter.test.ts',
     'playground/preact-pages/pages/transition-await.tsx',
     'playground/preact-pages/pages/transition-await.server.ts',
   ],
@@ -77,6 +75,30 @@ export default {
   // Edits that keep an upstream assertion meaningful under Preact.
   // { file: generated path, from, to, reason }
   testRewrites: [
+    {
+      file: 'packages/preact/test/integration/md-layout-frontmatter.test.ts',
+      from: "{ name: 'void-preact:pages' }",
+      to: "{ name: 'void-react:pages' }",
+      reason: 'The test stands in for the adapter plugin. @void/md only recognizes the React name.',
+    },
+    {
+      file: 'packages/preact/test/integration/md-layout-frontmatter.test.ts',
+      from: "{ 'void-preact': join(import.meta.dirname, '../../src/runtime/index.ts') }",
+      to: "[{ find: /^(void-preact|@void\\/react)$/, replacement: join(import.meta.dirname, '../../src/runtime/index.ts') }]",
+      reason: '@void/md imports @void/react, and subpaths of void-preact must still resolve.',
+    },
+    {
+      file: 'test/island-css-build.ts',
+      from: "'../packages/md/dist/plugin.mjs'",
+      to: "'../tools/md-host/node_modules/@void/md/dist/plugin.mjs'",
+      reason: 'This repo uses the published @void/md.',
+    },
+    {
+      file: 'packages/preact/test/integration/md-layout-frontmatter.test.ts',
+      from: "'../../../md/src/plugin.ts'",
+      to: "'../../../../tools/md-host/node_modules/@void/md/dist/plugin.mjs'",
+      reason: 'This repo uses the published @void/md.',
+    },
     {
       file: 'packages/preact/test/unit/use-form.test.ts',
       from: 'expect(onCaughtError).toHaveBeenCalledWith(failure, expect.anything());',

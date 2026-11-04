@@ -16,6 +16,23 @@ function discardRange(start: Node | null | undefined): void {
   }
 }
 
+type SuspendingVNode = { __e?: Node | null };
+type SuspenseHook = {
+  __c(this: unknown, promise: Promise<unknown>, vnode: SuspendingVNode): void;
+};
+
+// Page code uses plain Suspense, so the fallback has to be discarded for every boundary.
+const suspensePrototype = Suspense.prototype as unknown as SuspenseHook;
+const childDidSuspend = suspensePrototype.__c;
+suspensePrototype.__c = function (promise, vnode) {
+  if (SettledSuspense.discardsServerFallback) {
+    const start = vnode.__e;
+    const discard = () => discardRange(start);
+    promise.then(discard, discard);
+  }
+  childDidSuspend.call(this, promise, vnode);
+};
+
 /**
  * React commits a boundary only when its content is ready. Preact runs effects above a suspended
  * child at once, and sets no state while hydrating, so the boundary's own state cannot say either.
@@ -43,15 +60,9 @@ export class SettledSuspense extends Suspense {
     });
   }
 
-  __c(promise: Promise<unknown>, vnode: { __e?: Node | null }): void {
+  __c(promise: Promise<unknown>, vnode: SuspendingVNode): void {
     SettledSuspense.pending++;
-    if (SettledSuspense.discardsServerFallback) {
-      const start = vnode.__e;
-      const discard = () => discardRange(start);
-      promise.then(discard, discard);
-    }
-    // oxlint-disable-next-line no-explicit-any -- __c is not part of Preact's public types
-    (Suspense.prototype as any).__c.call(this, promise, vnode);
+    suspensePrototype.__c.call(this, promise, vnode);
     const settle = () => {
       SettledSuspense.pending--;
       // Let the resumed child render first. It may suspend again.

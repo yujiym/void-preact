@@ -216,10 +216,10 @@ importers:
         specifier: ^1.64.1
         version: 1.64.1
       preact:
-        specifier: ^11.1.1
+        specifier: 11.1.1
         version: 11.1.1(preact-render-to-string@6.8.2)
       preact-render-to-string:
-        specifier: ^6.8.2
+        specifier: 6.8.2
         version: 6.8.2(preact@11.1.1)
       react:
         specifier: workspace:*
@@ -243,10 +243,10 @@ importers:
         specifier: ^4.13.16
         version: 4.13.16
       preact:
-        specifier: ^11.1.1
+        specifier: 11.1.1
         version: 11.1.1(preact-render-to-string@6.8.2)
       preact-render-to-string:
-        specifier: ^6.8.2
+        specifier: 6.8.2
         version: 6.8.2(preact@11.1.1)
       valibot:
         specifier: ^1.5.0
@@ -286,19 +286,19 @@ importers:
   tools/react-stub/react:
     dependencies:
       preact:
-        specifier: ^11.1.1
+        specifier: 11.1.1
         version: 11.1.1(preact-render-to-string@6.8.2)
       preact-render-to-string:
-        specifier: ^6.8.2
+        specifier: 6.8.2
         version: 6.8.2(preact@11.1.1)
 
   tools/react-stub/react-dom:
     dependencies:
       preact:
-        specifier: ^11.1.1
+        specifier: 11.1.1
         version: 11.1.1(preact-render-to-string@6.8.2)
       preact-render-to-string:
-        specifier: ^6.8.2
+        specifier: 6.8.2
         version: 6.8.2(preact@11.1.1)
 
 packages:

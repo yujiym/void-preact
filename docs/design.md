@@ -50,7 +50,7 @@ These are the choices forced by what Preact 11 does not have.
 
 **Navigation has no transitions.** `useTransition` in `preact/compat` returns `[false, startTransition]`, and `startTransition` runs its callback synchronously. So a resource gains a `result` field, set when its shell settles, and only a resource with a result renders. The reducer in `pages-client.ts` is otherwise upstream's. `NavigationFallback` renders when the current resource has no result and a visit is pending.
 
-**A page that suspends with no boundary of its own shows nothing.** React holds the old page during a transition. Preact's root `Suspense` shows its `null` fallback. Deferred props under the documented `<Suspense>` pattern are unaffected.
+**A page that suspends with no boundary of its own shows nothing.** React holds the old page during a transition. Preact's root `Suspense` shows its `null` fallback. Deferred props under the documented `<Suspense>` pattern are unaffected. Navigating away while that root remains suspended replaces only the parked boundary, so the destination can render before the old promise resolves. This resets shared layout state in Preact; React retains it. Normal navigation keeps its boundary and layout state. The comparison records cancellation recovery as a shared case and layout-state retention as a separate observed difference.
 
 **Form actions are provided by the adapter.** React 19 accepts a function as `<form action>`, and `@void/react` is built on it. `runtime/form-action.tsx` installs an `options.vnode` hook that swaps such a `form` for a component that calls the function with `FormData` and provides `useFormStatus`. `form.tsx` stays the upstream shape. React's automatic reset of uncontrolled fields after an action is not reproduced, because `form.reset()` would blank controlled inputs that Preact does not re-diff.
 
@@ -68,7 +68,7 @@ These are the choices forced by what Preact 11 does not have.
 
 ## Preact behavior this adapter works around
 
-`runtime/settled-suspense.ts` uses `Suspense.prototype.__c`, a mangled internal that `preact-render-to-string` also depends on.
+`runtime/preact-suspense-adapter.ts` owns every private Preact access. The internal `SettledSuspense` facade and the generated island bootstrap expose no private hooks. This dependency is accepted with maintainer-owned update verification; its removal is not a prerequisite for using this adapter.
 
 - Preact runs effects above a suspended child at once, and sets no boundary state during hydration. `SettledSuspense` tracks the root boundary so navigation commits and `data-hydrated` wait for its content, as React's commit does.
 - On resume, Preact hydrates a `$s` range as if it held streamed content. A deferred shell is cut before any streamed content, so the range holds the fallback, and the real content would keep the fallback element's attributes. The adapter empties the range first on deferred pages.
@@ -81,6 +81,7 @@ These are the choices forced by what Preact 11 does not have.
 | `ci.yml` | `checks` | Build, typecheck, upstream and own unit tests |
 | `ci.yml` | `integration` | The upstream shared contract against the playground, in Chromium, in dev and preview |
 | `ci.yml` | `packed-consumer` | The packed tarball builds and server-renders in a fresh app outside the workspace |
+| `ci.yml` | `comparison` | Shared behavioral and private-Suspense maintenance cases against real installed React and packed Preact, in dev and preview |
 | `upstream-sync.yml` | `sync` | Weekly, opens a PR for a new Void release with the upstream diff, the ported files to review, and the test status |
 
 ## Versioning
@@ -138,3 +139,41 @@ npm publish /tmp/void-preact-VERSION.tgz --access public
 ```
 
 Create a matching `vVERSION` Git tag and GitHub release from the verified commit after publication. Record the supported Void version and compatibility changes in its notes. If a published version is faulty, deprecate it and publish a corrected patch; do not reuse its version number.
+
+## Installed behavior comparison
+
+`examples/comparison/shared` is one canonical React-source app. `pnpm test:comparison` packs this adapter and prepares independent React and Preact apps outside the workspace. The Preact copy changes adapter imports and the form-status import; its React imports resolve through Preact compatibility aliases. Source hashes, actual dependency versions and paths, the upstream revision, and the packed tarball hash are recorded. No workspace React stub or shared node_modules tree is used.
+
+The executable case registries in `e2e/comparison.mjs` and `e2e/suspense.mjs` own assertions, related source-contract references, expected differences and API coverage labels. These are new sample scenarios related to the existing contracts, not unchanged executions of every upstream contract. Existing unit, integration and packed-consumer gates stay in place.
+
+The report in `artifacts/comparison/report.md` and `report.json` classifies each scenario only after React and Preact run in both dev and preview. Equal successful observations are equivalent within that scenario. A declared difference must be observed on both sides and stays outside equivalence totals. Failed, missing or blocked required cells fail CI. Matching crashes are failures. Expected renderer diagnostics are recorded separately; only a case-specific exact React deferred-shell recovery diagnostic is accepted in the two deferred cases. Unexpected browser errors still fail. Export availability probes do not establish behavioral compatibility.
+
+Real local email signup, session cookies, protected server access, reload, signout and signin are exercised without intercepting auth endpoints. External OAuth providers and production deployment remain unverified. The report also lists omitted prefetch/cache/scroll cases, full type compatibility, other browser engines and third-party library behavior. Passing this sampled matrix does not mean complete React equivalence.
+
+The prepared apps are retained in the printed temporary directory for manual use. Start either with `pnpm dev` in its own directory. Results and failure screenshots/logs are CI artifacts. Temporary environments, auth secrets, account passwords and session cookies are not uploaded.
+
+## Private Suspense support contract
+
+The supported pair is **Preact 11.1.1 and preact-render-to-string 6.8.2**. Both peerDependencies and development dependencies are exact. A development lockfile alone is insufficient because consumers install the declared peers. `pnpm check:suspense` rejects ranges, mismatched development versions, private package exports, private accesses outside the internal adapter, and leaked private fields in public declarations. Packing runs this check after building.
+
+| Dependency | Operation | Required assumption |
+| --- | --- | --- |
+| `Suspense.prototype.__c` | Read, capture, overwrite and call the captured method | Writable own function receiving the original boundary as `this`, a thenable and its suspending VNode |
+| `VNode.__e` | Read only | DOM pointer is undefined, null or a DOM Node; it can identify an SSR range start |
+| `componentWillUnmount` | Capture, wrap and call the public lifecycle | Original lifecycle runs with the same boundary; adapter registrations release in finally |
+| SSR `$s` and `/$s` comments | Read matching ranges and remove fallback contents | A matching end must exist before deletion; nested ranges are balanced and both markers remain |
+
+Fallback removal is registered on the promise before calling the captured Preact hook, so it runs before Preact retries hydration. The adapter registers completion afterward and defers waiter flushing until Preact can perform its resumed diff. It forwards original arguments and `this`. Registrations release at most once on resolution, rejection, hook throw or boundary unmount. Effect owners cancel their completion subscriptions on unmount. Only the adapter's root boundaries contribute to its pending count; nested ordinary Suspense may commit a fallback independently. The fallback-removal mode is runtime-global and remains enabled after deferred hydration begins; multiple independent pages roots in one document are outside the current verified scope.
+
+Incompatible hook shapes, invalid arguments or DOM pointers, and incomplete recognized SSR ranges produce a `void-preact: incompatible Preact Suspense internals` error. The adapter installs no silent compatibility fallback. Shape checks provide diagnostics; they do not prove semantic compatibility. The behavioral matrix is mandatory for support.
+
+The private class and hooks are not public API. Generated islands call the narrow `islands-client` bootstrap; applications use ordinary Suspense.
+
+## Preact update procedure
+
+1. Inspect changes to Preact suspension, unmount behavior and the renderer's SSR marker protocol. Update the internal adapter assumptions when necessary.
+2. In a candidate branch, change exact peer and dev versions together, including test stubs and the playground overlay. Install and regenerate the playground; do not publish or merge a wider support promise yet.
+3. Run `pnpm build`, `pnpm check:suspense`, `pnpm typecheck`, `pnpm test`, `pnpm test:comparison:unit`, `pnpm test:integration`, `node tools/ci/packed-consumer.mjs`, and `pnpm test:comparison`. Run `pnpm check:port` after integration restores temporary fixtures.
+4. Require the React/Preact common E2E for first suspension, resolution, repeated suspension, nesting, pending navigation/unmount and SSR hydration. Review screen state, DOM attributes, IDs, runtime errors and stale updates. Do not replace these with method-existence tests.
+5. Only after all checks pass, record the verified pair here and merge/release the exact support change. Retain compatibility reports as evidence. The comparison CI job is required for every update.
+6. If Preact provides a public API that preserves the needed behavior, migrate to it and remove the private adapter and its contract-specific checks. Keep the user-observable regression cases.

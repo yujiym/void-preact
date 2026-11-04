@@ -25,22 +25,8 @@ const COMPONENT_EXTENSIONS = ['.tsx', '.jsx', '.ts', '.js'];
 
 const HYDRATE_ISLAND = `
 async function hydrateIsland(el, mod, props, frontmatter) {
-  const { h, hydrate } = await import("preact");
-  const { useLayoutEffect } = await import("preact/hooks");
-  const { SettledSuspense } = await import("void-preact/settled-suspense");
-  const Component = mod.default || mod;
-  let island = h(Component, props);
-  if (Object.keys(frontmatter).length > 0) {
-    const { FrontmatterContext } = await import("void-preact");
-    island = h(FrontmatterContext.Provider, { value: frontmatter }, island);
-  }
-  function HydratedIsland() {
-    useLayoutEffect(() => {
-      SettledSuspense.whenSettled(() => el.setAttribute("data-hydrated", "true"));
-    }, []);
-    return h(SettledSuspense, { fallback: null }, island);
-  }
-  hydrate(h(HydratedIsland), el);
+  const { hydratePreactIsland } = await import("void-preact/islands-client");
+  hydratePreactIsland(el, mod, props, frontmatter);
 }`;
 
 export function islandsPlugin(

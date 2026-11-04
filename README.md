@@ -40,11 +40,12 @@ The API is the one in the [Void Pages documentation](https://void.cloud/guide/pa
 | `useTransition`, `startTransition` | Differs | Never pending. The callback runs at once. |
 | `useActionState`, `useOptimistic` | Missing | The build fails on the import. |
 | A page that suspends with no `<Suspense>` of its own | Differs | Renders nothing while it waits. React holds the previous page. |
+| Cancelling a suspended root by navigation | Differs | Preact recovers by replacing the parked boundary, resetting its layout state. Ordinary navigation preserves layout state. |
 | `onCaughtError` root option | Missing | Error boundaries still work. |
 
 ## Compatibility
 
-`void-preact` peers on one exact `void` version, because it imports adapter-facing Void entries that change between releases.
+`void-preact` peers on one exact `void` version, because it imports adapter-facing Void entries that change between releases. Preact support is limited to the verified pair **preact 11.1.1 / preact-render-to-string 6.8.2**. Deferred hydration and navigation rely on a maintained internal Suspense adapter. See the [support contract and update procedure](docs/design.md#private-suspense-support-contract).
 
 ## Versioning
 
@@ -71,6 +72,7 @@ pnpm typecheck
 pnpm test
 pnpm test:integration
 node tools/ci/packed-consumer.mjs
+pnpm test:comparison    # genuine installed React vs packed Preact, dev and preview
 ```
 
 Never edit `upstream/` or generated files. Change `tools/port/config.mjs`, then run `pnpm port generate`. To move to a new Void release, run `pnpm port sync <tag>`.
@@ -78,3 +80,5 @@ Never edit `upstream/` or generated files. Change `tools/port/config.mjs`, then 
 ## License
 
 MIT. Derived from Void, copyright Cloudflare, Inc.
+
+The comparison example lives in [examples/comparison](examples/comparison). Its generated report at `artifacts/comparison/report.md` distinguishes equivalent sampled behavior, observed differences, unsupported exports, failures, and unverified scope. Both applications are installed outside this workspace so the React baseline cannot use the test stubs.

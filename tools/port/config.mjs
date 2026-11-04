@@ -101,8 +101,8 @@ export default {
     {
       file: 'packages/preact/test/integration/md-layout-frontmatter.test.ts',
       from: "{ 'void-preact': join(import.meta.dirname, '../../src/runtime/index.ts') }",
-      to: "[{ find: /^(void-preact|@void\\/react)$/, replacement: join(import.meta.dirname, '../../src/runtime/index.ts') }]",
-      reason: '@void/md imports @void/react, and subpaths of void-preact must still resolve.',
+      to: "[{ find: /^void-preact\\/islands-client$/, replacement: join(import.meta.dirname, '../../src/runtime/islands-client.ts') }, { find: /^(void-preact|@void\\/react)$/, replacement: join(import.meta.dirname, '../../src/runtime/index.ts') }]",
+      reason: 'This test imports adapter source. The island bootstrap must also resolve to source so Markdown and islands share their frontmatter context.',
     },
     {
       file: 'test/island-css-build.ts',

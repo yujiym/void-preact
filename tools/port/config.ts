@@ -19,6 +19,7 @@ const config: PortConfig = {
   // Copied verbatim into upstream/ at the pinned tag.
   snapshot: [
     'LICENSE',
+    '.node-version',
     'packages/react',
     'playground/react-pages',
     'test/browser-helpers.ts',
@@ -88,6 +89,54 @@ const config: PortConfig = {
   // Edits that keep an upstream assertion meaningful under Preact.
   // { file: generated path, from, to, reason }
   testRewrites: [
+    {
+      file: "packages/preact/test/unit/use-form.test.ts",
+      from: "createElement(App)",
+      to: "createElement(App, null)",
+      reason: "Preact types require an explicit props argument for createElement.",
+    },
+    {
+      file: "test/island-page-browser.ts",
+      from: "alias?: Record<string, string>",
+      to: "alias?: import('vite').AliasOptions",
+      reason: "The Preact Markdown fixture resolves both the public runtime and island bootstrap with regex aliases.",
+    },
+    {
+      file: "packages/preact/test/integration/md-layout-frontmatter.test.ts",
+      from: "/// <reference path=\"../../../md/src/env.d.ts\" />",
+      to: "",
+      reason: "The published Markdown plugin provides its declarations; its source is outside this repository.",
+    },
+    {
+      file: "packages/preact/test/unit/use-form.test.ts",
+      from: "        { onCaughtError },\n",
+      to: "",
+      reason: "Preact has no onCaughtError root callback.",
+    },
+    {
+      file: "packages/preact/test/unit/use-form.test.ts",
+      from: "      const onCaughtError = vi.fn();\n",
+      to: "",
+      reason: "Preact has no onCaughtError root callback.",
+    },
+    {
+      file: "packages/preact/test/unit/use-form.test.ts",
+      from: "createRoot(container, options)",
+      to: "createRoot(container)",
+      reason: "Preact createRoot accepts only the container.",
+    },
+    {
+      file: "packages/preact/test/unit/use-form.test.ts",
+      from: ", options?: RootOptions",
+      to: "",
+      reason: "Preact has no React root options.",
+    },
+    {
+      file: "packages/preact/test/unit/use-form.test.ts",
+      from: "import { createRoot, type Root, type RootOptions } from 'react-dom/client';",
+      to: "import { createRoot, type Root } from 'react-dom/client';",
+      reason: "Preact has no React root options; the boundary behavior remains tested.",
+    },
     {
       file: 'packages/preact/test/integration/preact-pages-client.test.ts',
       from: "it.for(['transition', 'form-action', 'action-state', 'plain'] as const)",

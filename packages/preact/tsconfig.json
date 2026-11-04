@@ -5,6 +5,9 @@
     "moduleResolution": "NodeNext",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "strict": true,
+    "noUnusedLocals": true,
+    "isolatedDeclarations": true,
+    "declaration": true,
     "noEmit": true,
     "skipLibCheck": true,
     "allowImportingTsExtensions": true,
@@ -12,5 +15,5 @@
     "jsxImportSource": "preact",
     "types": ["node"]
   },
-  "include": ["src", "test/unit/*.typecheck.ts"]
+  "include": ["src", "test"]
 }

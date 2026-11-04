@@ -4,7 +4,20 @@ on:
   push:
     branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
   workflow_dispatch:
+    inputs:
+      windows:
+        description: Include Windows development checks.
+        type: boolean
+        default: false
+
+  workflow_call:
+    inputs:
+      windows:
+        description: Include Windows development checks.
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -22,7 +35,15 @@ jobs:
 
   checks:
     name: build, typecheck, unit
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: >-
+          ${{ (github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'test: windows') || inputs.windows) && fromJSON('["ubuntu-latest","windows-latest"]') || fromJSON('["ubuntu-latest"]') }}
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -30,13 +51,22 @@ jobs:
       - uses: ./.github/actions/setup
       - run: pnpm build
       - run: pnpm typecheck
+      - run: pnpm test:release
       - run: pnpm test --reporter=default --reporter=json --outputFile=artifacts/unit.json
       - if: always()
         run: node tools/ci/test-summary.ts 'Unit tests' artifacts/unit.json
 
   integration:
     name: upstream contract in a browser
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: >-
+          ${{ (github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'test: windows') || inputs.windows) && fromJSON('["ubuntu-latest","windows-latest"]') || fromJSON('["ubuntu-latest"]') }}
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -78,6 +108,19 @@ jobs:
       - if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: behavior-comparison
+          name: behavior-comparison-${{ github.sha }}
           path: artifacts/comparison/
           if-no-files-found: error
+          retention-days: 90
+
+  required:
+    name: CI required
+    if: always()
+    needs: [port, checks, integration, packed-consumer, comparison]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every selected job to succeed
+        env:
+          JOBS: ${{ toJSON(needs) }}
+        run: |
+          node -e 'const jobs = JSON.parse(process.env.JOBS); if (Object.values(jobs).some(job => job.result !== "success")) { console.error(jobs); process.exit(1); }'

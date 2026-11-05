@@ -5,7 +5,9 @@
 ## Repo layout mirrors the upstream monorepo
 
 ```
-DESIGN.md                  adapter design and support contract
+docs/DESIGN.md             adapter design and support contract
+docs/API.md                API differences from @void/react
+docs/CONTRIBUTING.md       development commands
 upstream.json              pinned tag and SHA
 upstream/.node-version     pinned upstream Node version
 .node-version              generated Node version
@@ -82,6 +84,43 @@ These are the choices forced by what Preact 11 does not have.
 
 ## Automation
 
+Automation carries each Void release as far as a pull request. A maintainer decides what merges and what ships.
+
+```mermaid
+flowchart TD
+  subgraph sync["Automated: upstream-sync.yml"]
+    check["Daily or manual run reads the target Void tag"]
+    changed{"New tag without an<br/>upstream/&lt;tag&gt; branch?"}
+    stop["Do nothing"]
+    port["pnpm port sync:<br/>snapshot upstream, regenerate files,<br/>merge ported source, bump version"]
+    issue["Open an issue"]
+    pr["Open the sync PR and dispatch full CI"]
+    check --> changed
+    changed -- No --> stop
+    changed -- Yes --> port
+    port --> pr
+    port -- Sync failed --> issue
+  end
+
+  subgraph review["Maintainer: review and merge"]
+    needsWork{"Conflict or possibly<br/>breaking release?"}
+    fix["Draft PR: resolve conflicts,<br/>write release notes, mark ready"]
+    merge["Review the upstream diff and CI, then merge"]
+    needsWork -- Yes --> fix --> merge
+    needsWork -- No --> merge
+  end
+
+  subgraph release["Maintainer starts, automation runs: npm-publish.yml"]
+    dispatch["Run npm publish on main"]
+    verify["Run full CI, including Windows"]
+    publish["Publish the tested tarball,<br/>then create the tag and GitHub release"]
+    dispatch --> verify --> publish
+  end
+
+  pr --> needsWork
+  merge --> dispatch
+```
+
 Upstream sync runs daily at 06:00 JST (21:00 UTC), or manually. It opens an update PR and dispatches the full CI, including the React/Preact comparison. Review and merge remain maintainer actions. GitHub must allow Actions to create pull requests.
 
 The manually dispatched npm publish workflow calls the shared CI with Windows enabled, then publishes the exact tested tarball from that same workflow run. It creates a version tag and GitHub release with compatibility details and evidence. npm trusted publishing and the GitHub `npm` environment must be configured first; see [release setup and procedure](#releasing). Updating the package version and reviewing compatibility changes remain maintainer actions.
@@ -143,13 +182,13 @@ pnpm test:integration
 node tools/ci/packed-consumer.ts
 ```
 
-Review each changed handwritten source listed by `report` against its upstream counterpart. Classify new upstream source in `tools/port/config.ts`. Fix stale test rewrites there and keep their reasons specific. Change replacement pages in `tools/port/overlay`, then regenerate. Update the README API table when an observable difference changes. Review the upstream snapshot diff as well as generated output before merging.
+Review each changed handwritten source listed by `report` against its upstream counterpart. Classify new upstream source in `tools/port/config.ts`. Fix stale test rewrites there and keep their reasons specific. Change replacement pages in `tools/port/overlay`, then regenerate. Update `docs/API.md`, and the README limitations and comparison table if affected, when an observable difference changes. Review the upstream snapshot diff as well as generated output before merging.
 
 The packed consumer checks SSR and Markdown frontmatter, hydrates native Preact hooks, and observes session changes through `auth.useSession()` imported from `void/client` in dev and preview. Its session endpoint is intercepted by Playwright. This proves the React auth client integration with Preact; it does not test an identity provider or a production login backend. In dev, it also edits a page and checks that HMR preserves hook state without reloading the document.
 
 ## Releasing
 
-Keep the package version independent of Void's exact peer version. Increment `packages/preact/package.json` using semver, update the README Compatibility row, update the lockfile with `pnpm install --no-frozen-lockfile`, and merge the reviewed change. README keeps only the current version; historical compatibility tables belong in each GitHub release, alongside its comparison evidence. CI warns when the row is out of date, without failing, because sync PRs change the peer before a maintainer updates it; publishing requires it.
+Keep the package version independent of Void's exact peer version. Increment `packages/preact/package.json` using semver, update the README Compatibility row and setup command, update the lockfile with `pnpm install --no-frozen-lockfile`, and merge the reviewed change. README keeps only the current version; historical compatibility tables belong in each GitHub release, alongside its comparison evidence. CI warns when the row is out of date, without failing, because sync PRs change the peer before a maintainer updates it; publishing requires it.
 
 One-time operator setup:
 

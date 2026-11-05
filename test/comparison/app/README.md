@@ -6,4 +6,4 @@ The printed temporary directory contains `react` and `preact`. Open either direc
 
 `test/comparison/app/` is the canonical source. Pages cover SSR, navigation/history, forms, islands, deferred data, error recovery, local email authentication and Suspense lifecycle behavior. The differences page demonstrates uncontrolled form reset and async transition pending state.
 
-Equivalent results apply only to the named assertions and recorded versions. Known differences remain visible. Missing evidence and unexpected errors fail the gate. Read `DESIGN.md` at the repository root for the support contract and update procedure.
+Equivalent results apply only to the named assertions and recorded versions. Known differences remain visible. Missing evidence and unexpected errors fail the gate. Read `docs/DESIGN.md` for the support contract and update procedure.

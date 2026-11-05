@@ -1,6 +1,6 @@
 {
   "name": "void-preact",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Preact pages, server rendering, forms, and navigation for Void.",
   "license": "MIT",
   "repository": {

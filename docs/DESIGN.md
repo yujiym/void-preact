@@ -84,7 +84,7 @@ These are the choices forced by what Preact 11 does not have.
 
 ## Automation
 
-Automation carries each Void release as far as a pull request. A maintainer decides what merges and what ships.
+Automation carries each Void release as far as a pull request. A maintainer decides what merges, and merging a version change publishes it.
 
 ```mermaid
 flowchart TD
@@ -110,15 +110,18 @@ flowchart TD
     needsWork -- No --> merge
   end
 
-  subgraph release["Maintainer starts, automation runs: npm-publish.yml"]
-    dispatch["Run npm publish on main"]
+  subgraph release["Automated: npm-publish.yml"]
+    published{"Version already on npm?"}
+    skip["Do nothing"]
     verify["Run full CI, including Windows"]
     publish["Publish the tested tarball,<br/>then create the tag and GitHub release"]
-    dispatch --> verify --> publish
+    published -- Yes --> skip
+    published -- No --> verify --> publish
   end
 
   pr --> needsWork
-  merge --> dispatch
+  merge --> published
+  recover["Maintainer: manual run to recover"] --> published
 ```
 
 Upstream sync runs daily at 06:00 JST (21:00 UTC), or manually. It opens an update PR and dispatches the full CI, including the React/Preact comparison. Review and merge remain maintainer actions. GitHub must allow Actions to create pull requests.

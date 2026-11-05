@@ -14,7 +14,7 @@ In a Void app using Vite 8, install the supported dependencies:
 
 ```sh
 pnpm add --save-exact preact@11.1.1 preact-render-to-string@6.8.2
-pnpm add -D --save-exact void-preact void@1.6.1 @babel/core@7.28.0
+pnpm add -D --save-exact void-preact void@1.6.2 @babel/core@7.28.0
 ```
 
 ```ts
@@ -63,7 +63,7 @@ The current version in this repository supports the following dependencies:
 
 | void-preact | Void (exact) | Preact (exact) | preact-render-to-string (exact) | Vite |
 | --- | --- | --- | --- | --- |
-| 0.1.1 | 1.6.1 | 11.1.1 | 6.8.2 | ^8.0.0 |
+| 0.1.2 | 1.6.2 | 11.1.1 | 6.8.2 | ^8.0.0 |
 
 This table describes the current version only. For older versions, see the compatibility table and comparison evidence attached to each [GitHub release](https://github.com/yujiym/void-preact/releases). Deferred hydration and navigation use a maintained private Suspense adapter; see the [support contract and update procedure](DESIGN.md#private-suspense-support-contract).
 

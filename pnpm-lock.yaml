@@ -202,6 +202,9 @@ importers:
 
   packages/preact:
     dependencies:
+      '@babel/core':
+        specifier: ^7.28.0
+        version: 7.29.7(supports-color@10.2.2)
       '@preact/preset-vite':
         specifier: ^2.10.6
         version: 2.10.6(@babel/core@7.29.7(supports-color@10.2.2))(@voidzero-dev/vite-plus-core@1.5.0(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1))(preact@11.1.1)(supports-color@10.2.2)
@@ -212,9 +215,6 @@ importers:
         specifier: npm:@voidzero-dev/vite-plus-core@^1.5.0
         version: '@voidzero-dev/vite-plus-core@1.5.0(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1)'
     devDependencies:
-      '@babel/core':
-        specifier: ^7.28.0
-        version: 7.29.7(supports-color@10.2.2)
       '@types/node':
         specifier: ^24.0.0
         version: 24.19.2

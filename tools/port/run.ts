@@ -172,6 +172,7 @@ function bumpRelease(level: 'patch' | 'minor'): string {
   const readme = join(ROOT, 'README.md');
   writeFileSync(readme, readFileSync(readme, 'utf8')
     .replace(/^\| \d+\.\d+\.\d+ \| \d.*\|$/m, rowFor({ ...manifest, version }))
+    .replace(/\bvoid-preact@\d+\.\d+\.\d+/, `void-preact@${version}`)
     .replace(/\bvoid@\d+\.\d+\.\d+/, `void@${manifest.peerDependencies.void}`));
   return version;
 }

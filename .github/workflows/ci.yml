@@ -32,6 +32,7 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/setup
       - run: pnpm check:port
+      - run: pnpm check:readme
 
   checks:
     name: build, typecheck, unit

@@ -123,7 +123,7 @@ flowchart TD
 
 Upstream sync runs daily at 06:00 JST (21:00 UTC), or manually. It opens an update PR and dispatches the full CI, including the React/Preact comparison. Review and merge remain maintainer actions. GitHub must allow Actions to create pull requests.
 
-The manually dispatched npm publish workflow calls the shared CI with Windows enabled, then publishes the exact tested tarball from that same workflow run. It creates a version tag and GitHub release with compatibility details and evidence. npm trusted publishing and the GitHub `npm` environment must be configured first; see [release setup and procedure](#releasing). Updating the package version and reviewing compatibility changes remain maintainer actions.
+The npm publish workflow runs when a merge to `main` changes the package version to one npm does not have, or when dispatched manually. It calls the shared CI with Windows enabled, then publishes the exact tested tarball from that same workflow run. It creates a version tag and GitHub release with compatibility details and evidence. npm trusted publishing and the GitHub `npm` environment must be configured first; see [release setup and procedure](#releasing). Reviewing and merging a version change is therefore the decision to publish.
 
 | Workflow | Job | What it proves |
 | --- | --- | --- |
@@ -197,7 +197,7 @@ One-time operator setup:
 - In npm's trusted publisher settings for `void-preact`, register owner `yujiym`, repository `void-preact`, workflow `npm-publish.yml`, and environment `npm`. Allow direct `npm publish` in that trusted publisher. The workflow uses OIDC, without an npm token. Configure it shortly before the next publication: npm requires a first successful publish within two days. See [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/).
 - Before the first release, confirm package name ownership. If the package does not yet exist, an authorized npm operator must bootstrap its first publication and then configure trusted publishing. Do not expect OIDC to claim an unpublished name.
 
-Run **npm publish** manually on `main`, providing release changes and migration notes. Its `verify` job calls `.github/workflows/ci.yml` with Windows enabled. This runs build, typecheck, unit, integration, packed-consumer and comparison checks for the selected commit. Normal PR CI remains Linux-only unless labeled `test: windows`.
+Merging a version change publishes it. The release body starts with the upstream link for a sync PR, or the title for any other PR, followed by the `## Release notes` section of the PR body. A PR labeled `breaking` with an empty section stops before anything is published. To recover, or after a failed run, run **npm publish** manually on `main` with release changes and migration notes. The `verify` job calls `.github/workflows/ci.yml` with Windows enabled. This runs build, typecheck, unit, integration, packed-consumer and comparison checks for the selected commit. Normal PR CI remains Linux-only unless labeled `test: windows`.
 
 Publication waits for the entire reusable CI to succeed. The comparison job uploads the exact tarball it installed; the publish job downloads that artifact from the same workflow run. No CI run ID is required, and no separate run is selected. CI and publication stay in separate workflow files, with one shared implementation of the checks.
 

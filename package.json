@@ -11,6 +11,7 @@
     "test:integration": "vp test run --project integration",
     "test:comparison": "pnpm typecheck:tools && node test/comparison/run.ts",
     "test:comparison:unit": "node --test test/comparison/*.test.ts",
+    "check:readme": "node tools/ci/check-readme-compatibility.ts",
     "check:suspense": "node tools/ci/check-suspense-support.ts",
     "typecheck:tools": "tsc --noEmit --project tsconfig.tools.json",
     "test:release": "node --test tools/ci/*.test.ts"

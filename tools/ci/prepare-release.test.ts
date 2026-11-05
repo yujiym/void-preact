@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { compatibilityRow } from './compatibility-row.ts';
+import { rowFor } from './compatibility-row.ts';
 import manifest from '../../packages/preact/package.json' with { type: 'json' };
 
 test('release preparation retains the tested package and rejects invalid evidence', () => {
@@ -32,7 +32,7 @@ test('release preparation retains the tested package and rejects invalid evidenc
     const stale = run();
     assert.notEqual(stale.status, 0);
     assert.match(stale.stderr, /Update the README Compatibility row/);
-    writeFileSync(join(directory, 'README.md'), compatibilityRow);
+    writeFileSync(join(directory, 'README.md'), rowFor(manifest));
     for (const invalid of [
       { passed: false, metadata },
       { passed: true, metadata: { ...metadata, dirty: true } },

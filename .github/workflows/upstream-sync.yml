@@ -2,7 +2,7 @@ name: Upstream sync
 
 on:
   schedule:
-    - cron: '0 21 * * 1'
+    - cron: '0 21 * * *'
   workflow_dispatch:
     inputs:
       tag:
@@ -17,6 +17,7 @@ permissions:
   contents: write
   pull-requests: write
   actions: write
+  issues: write
 
 jobs:
   sync:
@@ -27,19 +28,25 @@ jobs:
       - id: target
         env:
           REQUESTED: ${{ inputs.tag }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           tag="${REQUESTED:-v$(npm view void version)}"
           current="$(node -p "require('./upstream.json').tag")"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          echo "changed=$([ "$tag" = "$current" ] && echo false || echo true)" >> "$GITHUB_OUTPUT"
+          [ "$tag" = "$current" ] && changed=false || changed=true
+          git ls-remote --exit-code origin "refs/heads/upstream/$tag" && changed=false
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
+          if [ "$changed" = true ]; then
+            breaking="$(node tools/ci/upstream-breaking.ts "$current" "$tag")"
+            echo "breaking=$breaking" >> "$GITHUB_OUTPUT"
+          fi
       - if: steps.target.outputs.changed == 'true'
         env:
           TAG: ${{ steps.target.outputs.tag }}
-          GH_TOKEN: ${{ github.token }}
+          BREAKING: ${{ steps.target.outputs.breaking }}
         run: |
-          branch="upstream/$TAG"
-          git ls-remote --exit-code origin "refs/heads/$branch" && exit 0
-          node tools/port/run.ts sync "$TAG" | tee sync-report.txt
+          set -o pipefail
+          node tools/port/run.ts sync "$TAG" "${BREAKING:+minor}" | tee sync-report.txt
       - if: steps.target.outputs.changed == 'true'
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
@@ -47,10 +54,11 @@ jobs:
       - if: steps.target.outputs.changed == 'true'
         env:
           TAG: ${{ steps.target.outputs.tag }}
+          BREAKING: ${{ steps.target.outputs.breaking }}
+          REQUESTED: ${{ inputs.tag }}
           GH_TOKEN: ${{ github.token }}
         run: |
           branch="upstream/$TAG"
-          git ls-remote --exit-code origin "refs/heads/$branch" && exit 0
           pnpm install --no-frozen-lockfile
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
@@ -59,13 +67,47 @@ jobs:
           git commit -m "chore: sync upstream void to $TAG"
           git push origin "$branch"
           {
-            echo "Syncs \`packages/react\` from void $TAG. The dispatched CI must pass before merging."
+            echo "Syncs \`packages/react\` from void $TAG ([release notes](https://github.com/voidzero-dev/void/releases/tag/$TAG)). The dispatched CI must pass before merging."
             echo
+            echo '## Release notes'
+            echo
+            echo '<!-- Added to the GitHub release after the upstream link. Required when this PR is labeled `breaking`: describe the change and its migration steps. -->'
+            echo
+            echo '## Sync report'
+            echo
+            if [ -n "$BREAKING" ]; then
+              echo "**Possibly breaking upstream releases: $BREAKING.** Write the release notes above, then mark this PR ready for review."
+              echo
+            fi
+            if grep -q '^  conflict: ' sync-report.txt; then
+              echo '**Conflicts need resolving by hand.** Fix the conflict markers in the listed files, then mark this PR ready for review.'
+              echo
+            fi
             echo 'Comparison reports, diagnostics and the tested tarball are retained for 90 days in the dispatched CI run (behavior-comparison-<commit>). Release reports are attached permanently to the GitHub release.'
             echo
             echo '```'
             cat sync-report.txt
             echo '```'
           } > pr-body.md
-          gh pr create --title "chore: sync upstream void to $TAG" --body-file pr-body.md
+          args=()
+          if [ -n "$BREAKING" ]; then
+            gh label create breaking --color B60205 --description 'Requires migration steps in the release notes' --force
+            args+=(--label breaking --draft)
+          elif grep -q '^  conflict: ' sync-report.txt; then
+            args+=(--draft)
+          fi
+          gh pr create --title "chore: sync upstream void to $TAG" --body-file pr-body.md "${args[@]}"
           gh workflow run ci.yml --ref "$branch"
+          [ -n "$REQUESTED" ] && exit 0
+          gh pr list --state open --limit 100 --json number,headRefName \
+            --jq ".[] | select((.headRefName | startswith(\"upstream/\")) and .headRefName != \"$branch\") | .number" \
+            | while read -r number; do gh pr close "$number" --comment "Superseded by the sync to $TAG."; done
+      - if: failure()
+        env:
+          TAG: ${{ steps.target.outputs.tag }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="Upstream sync failed for ${TAG:-the latest void release}"
+          existing="$(gh issue list --state open --search "in:title \"$title\"" --json number --jq 'length')"
+          [ "$existing" != 0 ] || gh issue create --title "$title" --body "See $RUN_URL. The current release is not affected."

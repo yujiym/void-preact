@@ -9,6 +9,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join, resolve } from "node:path";
+import { compatibilityRow } from "./compatibility-row.ts";
 import manifest from "../../packages/preact/package.json" with { type: "json" };
 import upstream from "../../upstream.json" with { type: "json" };
 
@@ -22,7 +23,6 @@ assert.match(
   /^\d+\.\d+\.\d+$/,
   "Release workflow currently supports stable versions only",
 );
-const compatibilityRow = `| ${manifest.version} | ${manifest.peerDependencies.void} | ${manifest.peerDependencies.preact} | ${manifest.peerDependencies["preact-render-to-string"]} | ${manifest.peerDependencies.vite} |`;
 assert.ok(readFileSync('README.md', 'utf8').includes(compatibilityRow), 'Update the README Compatibility row before releasing');
 const notes = process.env.RELEASE_NOTES?.trim();
 assert.ok(notes, "Describe the changes and migration steps in RELEASE_NOTES");

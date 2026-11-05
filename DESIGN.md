@@ -145,7 +145,7 @@ The packed consumer checks SSR and Markdown frontmatter, hydrates native Preact 
 
 ## Releasing
 
-Keep the package version independent of Void's exact peer version. Increment `packages/preact/package.json` using semver, update the README Compatibility row, update the lockfile with `pnpm install --no-frozen-lockfile`, and merge the reviewed change. README keeps only the current version; historical compatibility tables belong in each GitHub release, alongside its comparison evidence.
+Keep the package version independent of Void's exact peer version. Increment `packages/preact/package.json` using semver, update the README Compatibility row, update the lockfile with `pnpm install --no-frozen-lockfile`, and merge the reviewed change. README keeps only the current version; historical compatibility tables belong in each GitHub release, alongside its comparison evidence. CI warns when the row is out of date, without failing, because sync PRs change the peer before a maintainer updates it; publishing requires it.
 
 One-time operator setup:
 

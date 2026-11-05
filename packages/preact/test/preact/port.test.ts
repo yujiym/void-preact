@@ -33,6 +33,8 @@ it('checks and removes stale generated files while preserving hand tests and ign
       rewrites: [], dropped: [], testRewrites: [], divergences: [], mechanical: [], ported: [],
     })};\n`);
     copyFileSync(join(ROOT, 'tools/port/run.ts'), join(dir, 'tools/port/run.ts'));
+    write('tools/ci/compatibility-row.ts');
+    copyFileSync(join(ROOT, 'tools/ci/compatibility-row.ts'), join(dir, 'tools/ci/compatibility-row.ts'));
     write('upstream/.node-version', '24.22.1\n');
     write('upstream.json', JSON.stringify({ tag: 'fixture' }));
     write('.gitignore', 'node_modules\ndist\n.void\n');

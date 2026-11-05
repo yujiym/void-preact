@@ -6,6 +6,8 @@
 
 [Preact](https://preactjs.com) adapter for [Void](https://void.cloud), ported from `@void/react`. Build server-rendered pages with typed loaders, forms, layouts, and interactive islands. Use `class` in your JSX.
 
+> **Early days.** This adapter is still rough around the edges, and Void itself is evolving quickly, so for now we'd suggest using it only for dogfooding. Please avoid using it in production.
+
 ## Setup
 
 In a Void app using Vite 8, install the supported dependencies:

@@ -1,8 +1,9 @@
 #!/usr/bin/env node
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative as nativeRelative } from 'node:path';
+import { rowFor } from '../ci/compatibility-row.ts';
 import config from './config.ts';
 
 const relative = (from: string, to: string) => nativeRelative(from, to).replaceAll('\\', '/');
@@ -136,7 +137,49 @@ function check() {
   console.log(`port check ok at ${readPinTag()}`);
 }
 
-function sync(tag: string): void {
+/** Upstream source with this repo's renames, so a three-way merge only sees real changes. */
+function renamedUpstream(file: string): string {
+  return config.sourceRewrites.reduce((out, [from, to]) => out.replace(from, to), rewrite(readFileSync(join(UPSTREAM, SOURCE, file), 'utf8')));
+}
+
+/** Writes upstream's changes into the hand-written source and returns the files left with conflict markers. */
+function mergePorted(previous: ReadonlyMap<string, string>): string[] {
+  const dir = mkdtempSync(join(tmpdir(), 'void-merge-'));
+  const conflicts = config.ported.filter((file) => {
+    const base = previous.get(file);
+    const target = join(ROOT, 'packages/preact/src', file);
+    if (base === undefined || !existsSync(join(UPSTREAM, SOURCE, file))) return false;
+    const incoming = renamedUpstream(file);
+    if (base === incoming) return false;
+    writeFileSync(join(dir, 'base'), base);
+    writeFileSync(join(dir, 'incoming'), incoming);
+    // git merge-file exits with the number of conflicts, and negative values wrap above 127.
+    const { status } = spawnSync('git', ['merge-file', '-L', 'void-preact', '-L', 'previous upstream', '-L', 'new upstream', target, join(dir, 'base'), join(dir, 'incoming')], { stdio: 'inherit' });
+    if (status === null || status > 127) throw new Error(`git merge-file failed for ${file}`);
+    return status > 0;
+  });
+  rmSync(dir, { recursive: true, force: true });
+  return conflicts;
+}
+
+/** Every Void update changes the exact peer, so each one needs a new package version and README row. */
+function bumpRelease(level: 'patch' | 'minor'): string {
+  const path = join(ROOT, 'packages/preact/package.json');
+  const manifest = JSON.parse(readFileSync(path, 'utf8'));
+  const [major, minor, patch] = manifest.version.split('.').map(Number);
+  const version = level === 'minor' ? `${major}.${minor + 1}.0` : `${major}.${minor}.${patch + 1}`;
+  writeFileSync(path, readFileSync(path, 'utf8').replace(`"version": "${manifest.version}"`, `"version": "${version}"`));
+  const readme = join(ROOT, 'README.md');
+  writeFileSync(readme, readFileSync(readme, 'utf8')
+    .replace(/^\| \d+\.\d+\.\d+ \| \d.*\|$/m, rowFor({ ...manifest, version }))
+    .replace(/\bvoid@\d+\.\d+\.\d+/, `void@${manifest.peerDependencies.void}`));
+  return version;
+}
+
+function sync(tag: string, level: 'patch' | 'minor'): void {
+  const previous = new Map(config.ported
+    .filter((file) => existsSync(join(UPSTREAM, SOURCE, file)))
+    .map((file) => [file, renamedUpstream(file)]));
   const dir = mkdtempSync(join(tmpdir(), 'void-upstream-'));
   execFileSync('git', ['clone', '--quiet', '-c', 'advice.detachedHead=false', '--depth', '1', '--branch', tag, config.repo, dir], { stdio: 'inherit' });
   const sha = execFileSync('git', ['-C', dir, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
@@ -155,7 +198,13 @@ function sync(tag: string): void {
     writeFileSync(abs, readFileSync(abs, 'utf8').replaceAll(/"(void|@void\/md)": "[^"]+"/g, `"$1": "${version}"`));
   }
   generate();
+  for (const file of config.mechanical) {
+    if (existsSync(join(UPSTREAM, SOURCE, file))) writeFileSync(join(ROOT, 'packages/preact/src', file), mechanicalSource(file));
+  }
+  const conflicts = mergePorted(previous);
+  console.log(`void-preact version: ${bumpRelease(level)}`);
   report();
+  conflicts.forEach((file) => console.log(`  conflict: packages/preact/src/${file}`));
 }
 
 /** What a reviewer must look at after a sync. */
@@ -164,16 +213,16 @@ function report() {
     .split('\n').filter(Boolean).map((line) => line.slice(3));
   const review = changed.filter((path) => config.ported.some((file) => path === `upstream/${SOURCE}${file}`));
   console.log(`upstream files changed: ${changed.length}`);
-  console.log(`ported source to review by hand: ${review.length}`);
+  console.log(`ported source merged from upstream: ${review.length}`);
   review.forEach((path) => console.log(`  ${path}`));
 }
 
-const [command, arg] = process.argv.slice(2);
-if (command === 'sync' && arg) sync(arg);
+const [command, arg, level] = process.argv.slice(2);
+if (command === 'sync' && arg) sync(arg, level === 'minor' ? 'minor' : 'patch');
 else if (command === 'generate') generate();
 else if (command === 'check') check();
 else if (command === 'report') report();
 else {
-  console.error('usage: run.ts sync <tag> | generate | check | report');
+  console.error('usage: run.ts sync <tag> [patch|minor] | generate | check | report');
   process.exit(2);
 }

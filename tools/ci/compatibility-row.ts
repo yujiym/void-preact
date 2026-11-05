@@ -1,5 +1,12 @@
 import manifest from '../../packages/preact/package.json' with { type: 'json' };
 
-const { void: voidVersion, preact, 'preact-render-to-string': renderToString, vite } = manifest.peerDependencies;
+type CompatibilityManifest = {
+  version: string;
+  peerDependencies: { void: string; preact: string; 'preact-render-to-string': string; vite: string };
+};
 
-export const compatibilityRow = `| ${manifest.version} | ${voidVersion} | ${preact} | ${renderToString} | ${vite} |`;
+export function rowFor({ version, peerDependencies: peers }: CompatibilityManifest): string {
+  return `| ${version} | ${peers.void} | ${peers.preact} | ${peers['preact-render-to-string']} | ${peers.vite} |`;
+}
+
+export const compatibilityRow = rowFor(manifest);

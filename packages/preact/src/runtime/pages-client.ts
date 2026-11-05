@@ -46,7 +46,7 @@ type PreactLayoutComponent = ComponentType<{ children?: ComponentChildren }>;
 export type PreactPagesConfig = Readonly<{
   components: Record<string, () => Promise<ComponentModule>>;
   layoutTree: Record<string, Array<string>>;
-  routeMeta: Record<string, { island?: boolean }>;
+  routeMeta: Record<string, { island?: boolean; prerender?: boolean }>;
   /** Page id for a decoded pathname. */
   matchRoute(path: string): string | null;
   staticPageData: boolean;

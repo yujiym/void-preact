@@ -35,7 +35,7 @@ The tree has the shape of the upstream one, so upstream test files keep their re
 | --- | --- | --- |
 | `rewrites` | Renames applied to every generated file | `check` compares generated files byte for byte |
 | `mechanical` | Source files equal to upstream after `sourceRewrites` | `check` fails on any drift |
-| `ported` | Hand-written source files | `report` lists them when upstream changes them |
+| `ported` | Hand-written source files | `sync` three-way merges upstream's change; conflicts make the PR a draft |
 | `testRewrites` | An edit that keeps an upstream assertion meaningful, with a reason | Generation fails if the text is gone upstream |
 | `divergences` | An upstream test this adapter skips, with a reason | Generation fails if the title is gone upstream |
 | `dropped` | Generated paths this repo removes | Listed for review |
@@ -82,7 +82,7 @@ These are the choices forced by what Preact 11 does not have.
 
 ## Automation
 
-Upstream sync runs weekly on Tuesday at 06:00 JST (Monday 21:00 UTC), or manually. It opens an update PR and dispatches the full CI, including the React/Preact comparison. Review and merge remain maintainer actions. GitHub must allow Actions to create pull requests.
+Upstream sync runs daily at 06:00 JST (21:00 UTC), or manually. It opens an update PR and dispatches the full CI, including the React/Preact comparison. Review and merge remain maintainer actions. GitHub must allow Actions to create pull requests.
 
 The npm publish workflow runs when a merge to `main` changes the package version to one npm does not have, or when dispatched manually. It calls the shared CI with Windows enabled, then publishes the exact tested tarball from that same workflow run. It creates a version tag and GitHub release with compatibility details and evidence. npm trusted publishing and the GitHub `npm` environment must be configured first; see [release setup and procedure](#releasing). Reviewing and merging a version change is therefore the decision to publish.
 
@@ -93,7 +93,7 @@ The npm publish workflow runs when a merge to `main` changes the package version
 | `ci.yml` | `integration` | The upstream shared contract against the playground, in Chromium, in dev and preview on Linux and Windows |
 | `ci.yml` | `packed-consumer` | The packed tarball builds and server-renders in a fresh app outside the workspace |
 | `ci.yml` | `comparison` | Shared behavioral and private-Suspense maintenance cases against real installed React and packed Preact, in dev and preview |
-| `upstream-sync.yml` | `sync` | Weekly, opens a PR for a new Void release with the upstream diff and ported files to review, then dispatches full CI |
+| `upstream-sync.yml` | `sync` | Daily, opens a PR for a new Void release with the upstream diff and ported files to review, then dispatches full CI |
 | `ci.yml` | `required` | Stable `CI required` check aggregating every selected job |
 | `npm-publish.yml` | `verify`, `publish` | Manual release from main; reusable CI with Windows, exact tested tarball publication, version tag and release evidence |
 
@@ -123,12 +123,16 @@ Wait for `CI required` to appear in a CI run before selecting it in the ruleset.
 
 Use Node from `.node-version` and the package manager in `package.json`. Install with `pnpm install --frozen-lockfile`.
 
-The weekly sync workflow opens one branch per upstream tag. GitHub must allow Actions to create pull requests in the repository's Actions settings. Its bot-created pull request starts the normal PR workflow only after a maintainer approves it, so sync explicitly dispatches CI on that branch, including packed-consumer and comparison tests. Approval is unnecessary: it repeats the dispatched checks on the same commit. The generated `.node-version` follows the upstream snapshot; sync switches Node before updating the lockfile. Existing update branches are left for maintainer review. A failed sync step needs manual attention in the workflow log. It does not indicate that the current release has stopped working.
+The daily sync workflow opens one branch per upstream tag and closes older open sync PRs without deleting their branches. Sync also applies `mechanical` source, three-way merges `ported` source, bumps the patch version, and updates the README row, so a clean sync only needs review and merge. A clean merge does not prove the code is correct under Preact: review the listed files against upstream.
+
+A conflict, or an upstream release that looks breaking, makes the PR a draft. Looking breaking means a major version, or release notes that mention a breaking change or `void migrate`; this is a heuristic, so add the `breaking` label by hand if it misses one. A breaking sync bumps the minor version instead. Write the change and its migration steps under `## Release notes` in the PR body, then mark it ready for review.
+
+A failed sync opens an issue linking the run. GitHub must allow Actions to create pull requests in the repository's Actions settings. Its bot-created pull request starts the normal PR workflow only after a maintainer approves it, so sync explicitly dispatches CI on that branch, including packed-consumer and comparison tests. Approval is unnecessary: it repeats the dispatched checks on the same commit. The generated `.node-version` follows the upstream snapshot; sync switches Node before updating the lockfile. Existing update branches are left for maintainer review. A failed sync step needs manual attention in the workflow log. It does not indicate that the current release has stopped working.
 
 To update locally on a clean branch:
 
 ```sh
-pnpm port sync vX.Y.Z
+pnpm port sync vX.Y.Z  # add `minor` after the tag for a breaking update
 pnpm install --no-frozen-lockfile
 pnpm port report
 pnpm check:port

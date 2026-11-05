@@ -1,10 +1,13 @@
 name: npm publish
 
 on:
+  push:
+    branches: [main]
+    paths: [packages/preact/package.json]
   workflow_dispatch:
     inputs:
       notes:
-        description: Release changes and migration steps (Markdown).
+        description: Release changes and migration steps (Markdown). Merging a version bump publishes automatically; use this to recover.
         required: true
         type: string
 
@@ -16,8 +19,33 @@ permissions:
   contents: read
 
 jobs:
+  unpublished:
+    runs-on: ubuntu-latest
+    outputs:
+      publish: ${{ steps.version.outputs.publish }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+      - id: version
+        run: |
+          version="$(node -p "require('./packages/preact/package.json').version")"
+          if npm view "void-preact@$version" version --json > view.txt 2> error.txt; then
+            [ -s view.txt ] && publish=false || publish=true
+          elif grep -q E404 error.txt; then
+            publish=true
+          else
+            cat error.txt >&2
+            exit 1
+          fi
+          echo "publish=$publish" >> "$GITHUB_OUTPUT"
+
   verify:
-    if: github.ref == 'refs/heads/main'
+    needs: unpublished
+    if: github.ref == 'refs/heads/main' && needs.unpublished.outputs.publish == 'true'
     uses: ./.github/workflows/ci.yml
     with:
       windows: true
@@ -29,6 +57,7 @@ jobs:
     permissions:
       contents: write
       id-token: write
+      pull-requests: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -42,8 +71,12 @@ jobs:
           path: evidence
       - id: package
         env:
-          RELEASE_NOTES: ${{ inputs.notes }}
-        run: node tools/ci/prepare-release.ts evidence release
+          INPUT_NOTES: ${{ inputs.notes }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RELEASE_NOTES="${INPUT_NOTES:-$(node tools/ci/release-notes.ts)}"
+          export RELEASE_NOTES
+          node tools/ci/prepare-release.ts evidence release
       - name: Inspect the tested package
         env:
           TARBALL: ${{ steps.package.outputs.tarball }}

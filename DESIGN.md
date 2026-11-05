@@ -123,7 +123,7 @@ Wait for `CI required` to appear in a CI run before selecting it in the ruleset.
 
 Use Node from `.node-version` and the package manager in `package.json`. Install with `pnpm install --frozen-lockfile`.
 
-The weekly sync workflow opens one branch per upstream tag. GitHub must allow Actions to create pull requests in the repository's Actions settings. Its bot-created pull request does not trigger the normal PR workflow, so it explicitly dispatches CI on that branch, including packed-consumer and comparison tests. The generated `.node-version` follows the upstream snapshot; sync switches Node before updating the lockfile. Existing update branches are left for maintainer review. A failed sync step needs manual attention in the workflow log. It does not indicate that the current release has stopped working.
+The weekly sync workflow opens one branch per upstream tag. GitHub must allow Actions to create pull requests in the repository's Actions settings. Its bot-created pull request starts the normal PR workflow only after a maintainer approves it, so sync explicitly dispatches CI on that branch, including packed-consumer and comparison tests. Approval is unnecessary: it repeats the dispatched checks on the same commit. The generated `.node-version` follows the upstream snapshot; sync switches Node before updating the lockfile. Existing update branches are left for maintainer review. A failed sync step needs manual attention in the workflow log. It does not indicate that the current release has stopped working.
 
 To update locally on a clean branch:
 

@@ -23,11 +23,16 @@ test('release preparation retains the tested package and rejects invalid evidenc
     env: { ...process.env, GITHUB_SHA: 'release-commit', RELEASE_NOTES: 'Fixture release', GITHUB_OUTPUT: join(directory, 'outputs') },
   });
   try {
-    for (const file of ['README.md', '.node-version']) {
-      copyFileSync(fileURLToPath(new URL(`../../${file}`, import.meta.url)), join(directory, file));
-    }
+    copyFileSync(fileURLToPath(new URL('../../.node-version', import.meta.url)), join(directory, '.node-version'));
     writeFileSync(join(directory, tarball), content);
     writeFileSync(join(directory, 'report.md'), 'Comparison fixture');
+    writeFileSync(join(directory, 'report.json'), JSON.stringify({ passed: true, metadata }));
+    writeFileSync(join(directory, 'README.md'), '| 0.0.0 | stale |');
+    const stale = run();
+    assert.notEqual(stale.status, 0);
+    assert.match(stale.stderr, /Update the README Compatibility row/);
+    const { void: voidVersion, preact, 'preact-render-to-string': renderToString, vite } = manifest.peerDependencies;
+    writeFileSync(join(directory, 'README.md'), `| ${manifest.version} | ${voidVersion} | ${preact} | ${renderToString} | ${vite} |`);
     for (const invalid of [
       { passed: false, metadata },
       { passed: true, metadata: { ...metadata, dirty: true } },

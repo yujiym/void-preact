@@ -29,7 +29,6 @@ writeFileSync(
       'preact-render-to-string': manifest.peerDependencies['preact-render-to-string'],
     },
     devDependencies: {
-      '@babel/core': manifest.devDependencies['@babel/core'],
       '@void/md': manifest.peerDependencies.void,
       void: manifest.peerDependencies.void,
       vite: manifest.peerDependencies.vite,
@@ -37,7 +36,7 @@ writeFileSync(
     },
   }),
 );
-writeFileSync(join(app, 'pnpm-workspace.yaml'), "allowBuilds:\n  esbuild: true\n  workerd: true\n  better-sqlite3: false\n");
+writeFileSync(join(app, 'pnpm-workspace.yaml'), "autoInstallPeers: false\nallowBuilds:\n  esbuild: true\n  workerd: true\n  better-sqlite3: false\n");
 writeFileSync(
   join(app, 'vite.config.ts'),
   `import { voidMarkdown } from '@void/md/plugin';

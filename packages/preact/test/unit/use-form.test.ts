@@ -638,7 +638,7 @@ describe('useForm state derivation and error management', () => {
         return null;
       }
 
-      await mountApp(createElement(IslandApp));
+      await mountApp(createElement(IslandApp, null));
       const getForm = () => islandFormRef.current!;
 
       // Order 1: older submission (submit1) finishes before latest (submit2)

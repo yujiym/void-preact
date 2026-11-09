@@ -4,7 +4,7 @@ import { createServer, type ViteDevServer } from 'vite';
 import { afterAll, beforeAll, expect, it } from 'vite-plus/test';
 import { collectBrowserDiagnostics } from '../../../../test/browser-helpers.ts';
 import { launchPagesBrowser } from '../../../../test/pages-browser.ts';
-import { PAGES_PROTOCOL_VERSION } from '../../../edge/src/pages-protocol.ts';
+const PAGES_PROTOCOL_VERSION = '1';
 
 const FIXTURE = join(import.meta.dirname, '..', 'fixtures', 'navigation-fallback');
 let server: ViteDevServer;

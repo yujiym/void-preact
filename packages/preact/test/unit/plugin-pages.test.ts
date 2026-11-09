@@ -298,17 +298,15 @@ describe('pagesPlugin dev config', () => {
     expect((config.optimizeDeps as { entries: Array<string> }).entries).toHaveLength(2);
   });
 
-  it('serves the workspace-linked void as source instead of pre-bundling it', async () => {
-    // This repository links void from packages/void, so a pre-bundled copy would
-    // outlive the next void build.
+  it('pre-bundles void when it is installed from node_modules', async () => {
     const config = (await loadServeConfig()) as {
       optimizeDeps: { include: Array<string> };
       environments: { void_worker: { optimizeDeps: { include: Array<string> } } };
     };
 
-    expect(config.optimizeDeps.include).not.toContain('void/pages-client');
-    expect(config.optimizeDeps.include).not.toContain('void/pages-prefetch');
-    expect(config.environments.void_worker.optimizeDeps.include).not.toContain('void/live/client');
+    expect(config.optimizeDeps.include).toContain('void/pages-client');
+    expect(config.optimizeDeps.include).toContain('void/pages-prefetch');
+    expect(config.environments.void_worker.optimizeDeps.include).toContain('void/live/client');
   });
 
   it.skip('includes only the React entry points needed by each environment', async () => {

@@ -20,7 +20,6 @@ export type { PrefetchConfig } from 'void/pages';
 
 const CLIENT_ENTRY_ID = 'virtual:void-pages-client';
 const WORKER_ENVIRONMENT_NAME = 'void_worker';
-<<<<<<< void-preact
 const PREACT_DEDUPE = ['preact', 'preact/compat', 'preact/hooks'];
 const PREACT_OPTIMIZE_DEPS = [
   'preact',
@@ -35,26 +34,8 @@ const WORKER_OPTIMIZE_DEPS = [
   'preact/devtools',
   'preact-render-to-string',
   'preact-render-to-string/stream',
-  'void/live/client',
 ];
-=======
-const REACT_DEDUPE = ['react', 'react-dom'];
-const REACT_OPTIMIZE_DEPS = ['react', 'react/jsx-runtime', 'react/jsx-dev-runtime', 'react-dom'];
-const CLIENT_OPTIMIZE_DEPS = [...REACT_OPTIMIZE_DEPS, 'react-dom/client'];
-const WORKER_OPTIMIZE_DEPS = [...REACT_OPTIMIZE_DEPS, 'react-dom/server'];
 const NODE_MODULES_SEGMENT = /[\\/]node_modules[\\/]/;
-
-// SSR HTML bypasses transformIndexHtml, so @vitejs/plugin-react cannot inject
-// its Fast Refresh preamble. Without it, the dev client entry fails to load.
-export const REACT_REFRESH_PREAMBLE = `
-<script type="module">
-  import RefreshRuntime from "/@react-refresh"
-  RefreshRuntime.injectIntoGlobalHook(window)
-  window.$RefreshReg$ = () => {}
-  window.$RefreshSig$ = () => (type) => type
-  window.__vite_plugin_react_preamble_installed__ = true
-</script>`;
->>>>>>> new upstream
 
 export function pagesPlugin(pagesDir: string, options?: PagesPluginOptions): Plugin {
   const root = options?.root ?? dirname(pagesDir);
@@ -88,33 +69,26 @@ export function pagesPlugin(pagesDir: string, options?: PagesPluginOptions): Plu
             // Crawl page modules before the first client request so third-party
             // imports are pre-bundled instead of triggering a full reload.
             entries: clientOptimizeEntries(await scan(), pagesDir, root),
-<<<<<<< void-preact
             // Pre-include entries that are discovered late via dynamic imports
             // during SPA navigation, avoiding a full-page reload from Vite's dep
             // optimizer. void/pages-client and void/pages-prefetch are reached
             // only through virtual entries and this excluded package, so the
-            // scanner cannot see them.
+            // scanner cannot see them. void/pages-server is injected into island
+            // modules by a transform, which the scanner cannot see either.
             include: [
               ...PREACT_OPTIMIZE_DEPS,
-              'void/pages-client',
-              'void/pages-prefetch',
+              ...installedDependencies([
+                'void/pages-client',
+                'void/pages-prefetch',
+                'void/pages-server',
+              ]),
               // void/client selects this adapter after dependency scanning.
               'void > better-auth/react',
-=======
-            // Pre-include React entries that are discovered late via dynamic
-            // imports during SPA navigation, avoiding a full-page reload
-            // from Vite's dep optimizer. void/pages-client and
-            // void/pages-prefetch are reached only through virtual entries and
-            // the excluded void-preact, so the scanner cannot see them.
-            include: [
-              ...CLIENT_OPTIMIZE_DEPS,
-              ...installedDependencies(['void/pages-client', 'void/pages-prefetch']),
->>>>>>> new upstream
             ],
           },
           ssr: {
             optimizeDeps: {
-              include: WORKER_OPTIMIZE_DEPS.filter((dep) => dep !== 'void/live/client'),
+              include: WORKER_OPTIMIZE_DEPS,
             },
           },
           environments: {

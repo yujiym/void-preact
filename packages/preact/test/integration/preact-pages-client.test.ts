@@ -18,8 +18,8 @@ import {
   defineSharedIslandHmrTests,
   defineSharedIslandTests,
 } from '../../../../test/pages-island-contract.ts';
-import { PAGES_PROTOCOL_VERSION } from '../../../edge/src/pages-protocol.ts';
-import { decodePageData, deserializePageData } from '../../../void/src/pages/serialize.ts';
+const PAGES_PROTOCOL_VERSION = '1';
+import { decodePageData, deserializePageData } from 'void/pages-server';
 
 declare global {
   interface Window {

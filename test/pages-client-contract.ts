@@ -1,11 +1,11 @@
 import type { Page, Request } from 'playwright';
 import { beforeAll, describe, expect, it } from 'vite-plus/test';
-import { PAGES_PROTOCOL_VERSION } from '../packages/edge/src/pages-protocol.ts';
+const PAGES_PROTOCOL_VERSION = '1';
 import {
   decodePageData,
   deserializePageData,
   serializePageData,
-} from '../packages/void/src/pages/serialize.ts';
+} from '../packages/preact/node_modules/void/dist/pages/serialize.mjs';
 
 type TestWindow = Window & {
   __SPA_MARKER?: boolean;

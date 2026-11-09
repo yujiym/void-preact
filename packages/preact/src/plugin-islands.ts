@@ -157,12 +157,8 @@ export function islandsPlugin(
           if (wrappers.length > 0) {
             // Prepend a Preact import for the wrapper functions
             return editIslandSource(code, edits, {
-<<<<<<< void-preact
-              prepend: 'import { h as _h_island } from "preact";\n',
-=======
               prepend:
-                'import _React_island from "react";\nimport { serializePageData as _serializeIslandProps } from "void/pages-server";\n',
->>>>>>> new upstream
+                'import { h as _h_island } from "preact";\nimport { serializePageData as _serializeIslandProps } from "void/pages-server";\n',
               append: '\n' + wrappers.join('\n'),
             });
           }

@@ -105,19 +105,23 @@ export function useForm(
     return nextOutcome;
   };
 
-<<<<<<< void-preact
+  const [outcome, setOutcome] = useState<SubmissionOutcome>(() => ({
+    status: 'idle',
+    defaults: initialDefaults,
+  }));
+  const outcomeRef = useRef(outcome);
   const [pendingCount, setPendingCount] = useState(0);
   const [failure, setFailure] = useState<{ error: unknown } | null>(null);
   const queueRef = useRef<Promise<void>>(Promise.resolve());
   if (failure) {
     throw failure.error;
   }
+  const pending = pendingCount > 0;
 
-  const submit = async (payload: SubmitPayload) => {
-=======
-  const [outcome, dispatchAction, pending] = useActionState<SubmissionOutcome, SubmitPayload>(
-    async (previousOutcome, payload) => {
->>>>>>> new upstream
+  const submit = async (
+    previousOutcome: SubmissionOutcome,
+    payload: SubmitPayload,
+  ): Promise<SubmissionOutcome> => {
       if (!router) {
         throw new Error('useForm(): requires the Void Router.');
       }
@@ -134,11 +138,7 @@ export function useForm(
         });
       } catch (submitError) {
         if (isAbortError(submitError)) {
-<<<<<<< void-preact
-          return;
-=======
           return { status: 'idle', defaults: previousOutcome.defaults };
->>>>>>> new upstream
         }
         throw submitError;
       }
@@ -155,9 +155,6 @@ export function useForm(
             validationErrors,
           );
         }
-<<<<<<< void-preact
-        return;
-=======
         return runErrorCallback(
           {
             status: 'error',
@@ -166,7 +163,6 @@ export function useForm(
           },
           result.error,
         );
->>>>>>> new upstream
       }
 
       const nextDefaults = options?.resetOnSuccess
@@ -186,36 +182,24 @@ export function useForm(
         dataRef.current = cloneFormValue(initialDefaults);
         setDataState(dataRef.current);
       }
-<<<<<<< void-preact
-      const nextDefaults = cloneFormValue(dataRef.current);
-      defaultsRef.current = nextDefaults;
-      setDefaultsState(nextDefaults);
-      setWasSuccessful(true);
-      setRecentlySuccessful(true);
-      successTimeoutRef.current = setTimeout(() => {
-        setRecentlySuccessful(false);
-        successTimeoutRef.current = null;
-      }, 2000);
-      await options?.onSuccess?.();
+      return nextOutcome;
   };
 
-  // Submits run one at a time, in order. A failed submit reaches the nearest error boundary.
+  // Preact has no useActionState. Submits run one at a time, in order, each seeing
+  // the previous outcome. A failed submit reaches the nearest error boundary.
   const submitRef = useRef(submit);
   submitRef.current = submit;
   const dispatchAction = useCallback((payload: SubmitPayload) => {
     setPendingCount((count) => count + 1);
     queueRef.current = queueRef.current
-      .then(() => submitRef.current(payload))
+      .then(async () => {
+        outcomeRef.current = await submitRef.current(outcomeRef.current, payload);
+        setOutcome(outcomeRef.current);
+      })
       .catch((error: unknown) => setFailure({ error }))
       .finally(() => setPendingCount((count) => count - 1));
     return queueRef.current;
   }, []);
-=======
-      return nextOutcome;
-    },
-    { status: 'idle', defaults: initialDefaults },
-  );
->>>>>>> new upstream
 
   const defaultsState = outcome.defaults;
   const hasChanges = useMemo(() => {
@@ -326,17 +310,13 @@ export function useForm(
   }, [outcome]);
 
   const dispatchMethodAction = useCallback(
-<<<<<<< void-preact
-    (method: string) => (_formData: FormData) => dispatchAction({ method }),
-=======
-    (method: string) => (_formData: FormData) => {
+    // The returned promise keeps useFormStatus pending until this submit settles.
+    (method: string) => (_formData: FormData) =>
       dispatchAction({
         method,
         snapshot: cloneFormValue(dataRef.current),
         dispatchData: dataRef.current,
-      });
-    },
->>>>>>> new upstream
+      }),
     [dispatchAction],
   );
 
@@ -350,7 +330,7 @@ export function useForm(
     setData,
     errors,
     error,
-    pending: pendingCount > 0,
+    pending,
     hasChanges,
     wasSuccessful,
     recentlySuccessful,

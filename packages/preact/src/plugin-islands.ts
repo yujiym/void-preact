@@ -147,7 +147,7 @@ export function islandsPlugin(
               `var ${name} = function ${name}(props) {` +
                 ` return _h_island("div", {` +
                 ` "data-island": ${JSON.stringify(islandId)},` +
-                ` "data-props": JSON.stringify(props),` +
+                ` "data-props": _serializeIslandProps(props),` +
                 ` "data-hydrate": ${JSON.stringify(strategy)}` +
                 ` }, _h_island(${rawName}, props));` +
                 ` };`,
@@ -157,7 +157,8 @@ export function islandsPlugin(
           if (wrappers.length > 0) {
             // Prepend a Preact import for the wrapper functions
             return editIslandSource(code, edits, {
-              prepend: 'import { h as _h_island } from "preact";\n',
+              prepend:
+                'import { h as _h_island } from "preact";\nimport { serializePageData as _serializeIslandProps } from "void/pages-server";\n',
               append: '\n' + wrappers.join('\n'),
             });
           }

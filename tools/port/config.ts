@@ -91,6 +91,60 @@ const config: PortConfig = {
   testRewrites: [
     {
       file: "packages/preact/test/unit/use-form.test.ts",
+      from: "createElement(IslandApp)",
+      to: "createElement(IslandApp, null)",
+      reason: "Preact types require an explicit props argument for createElement.",
+    },
+    {
+      file: "packages/preact/test/integration/md-layout-frontmatter.test.ts",
+      from: "'../../../void/src/pages/serialize.ts'",
+      to: "'void/pages-server'",
+      reason: "This repo uses the published void package; upstream's monorepo source is outside it.",
+    },
+    {
+      file: "packages/preact/test/integration/preact-pages-client.test.ts",
+      from: "'../../../void/src/pages/serialize.ts'",
+      to: "'void/pages-server'",
+      reason: "This repo uses the published void package; upstream's monorepo source is outside it.",
+    },
+    {
+      file: "packages/preact/test/integration/preact-pages-client.test.ts",
+      from: "import { PAGES_PROTOCOL_VERSION } from '../../../edge/src/pages-protocol.ts';",
+      to: "const PAGES_PROTOCOL_VERSION = '1';",
+      reason: "PAGES_PROTOCOL_VERSION is only exported by the transitive @void/edge. A protocol bump fails these tests, which is the signal to update this value.",
+    },
+    {
+      file: "packages/preact/test/integration/preact-pages-navigation-fallback.test.ts",
+      from: "import { PAGES_PROTOCOL_VERSION } from '../../../edge/src/pages-protocol.ts';",
+      to: "const PAGES_PROTOCOL_VERSION = '1';",
+      reason: "PAGES_PROTOCOL_VERSION is only exported by the transitive @void/edge. A protocol bump fails these tests, which is the signal to update this value.",
+    },
+    {
+      file: "test/pages-client-contract.ts",
+      from: "'../packages/void/src/pages/serialize.ts'",
+      to: "'../packages/preact/node_modules/void/dist/pages/serialize.mjs'",
+      reason: "This repo uses the published void package; upstream's monorepo source is outside it.",
+    },
+    {
+      file: "test/pages-client-contract.ts",
+      from: "import { PAGES_PROTOCOL_VERSION } from '../packages/edge/src/pages-protocol.ts';",
+      to: "const PAGES_PROTOCOL_VERSION = '1';",
+      reason: "PAGES_PROTOCOL_VERSION is only exported by the transitive @void/edge. A protocol bump fails these tests, which is the signal to update this value.",
+    },
+    {
+      file: "packages/preact/test/unit/plugin-pages.test.ts",
+      from: "it('serves the workspace-linked void as source instead of pre-bundling it', async () => {\n    // This repository links void from packages/void, so a pre-bundled copy would\n    // outlive the next void build.\n",
+      to: "it('pre-bundles void when it is installed from node_modules', async () => {\n",
+      reason: "This repo installs void from npm, so the installed branch is the one it can exercise.",
+    },
+    {
+      file: "packages/preact/test/unit/plugin-pages.test.ts",
+      from: "expect(config.optimizeDeps.include).not.toContain('void/pages-client');\n    expect(config.optimizeDeps.include).not.toContain('void/pages-prefetch');\n    expect(config.environments.void_worker.optimizeDeps.include).not.toContain('void/live/client');",
+      to: "expect(config.optimizeDeps.include).toContain('void/pages-client');\n    expect(config.optimizeDeps.include).toContain('void/pages-prefetch');\n    expect(config.environments.void_worker.optimizeDeps.include).toContain('void/live/client');",
+      reason: "This repo installs void from npm, so the installed branch is the one it can exercise.",
+    },
+    {
+      file: "packages/preact/test/unit/use-form.test.ts",
       from: "createElement(App)",
       to: "createElement(App, null)",
       reason: "Preact types require an explicit props argument for createElement.",

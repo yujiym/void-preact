@@ -57,6 +57,12 @@ export function prepareConsumers(artifacts: string): Prepared {
         writeFileSync(path, text);
       }
     }
+    if (adapter === 'react') {
+      // @void/react 1.7.0 injects this import into islands without pre-bundling it, and the
+      // resulting dev reload interrupts hydration. void-preact pre-bundles it itself.
+      const config = join(app, 'vite.config.ts');
+      writeFileSync(config, readFileSync(config, 'utf8').replace('include: [', "include: ['void/pages-server', "));
+    }
     const dependencies = {
       void: manifest.peerDependencies.void,
       vite: '8.3.5',

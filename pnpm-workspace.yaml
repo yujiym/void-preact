@@ -7,11 +7,11 @@ allowBuilds:
   esbuild: true
   workerd: true
 minimumReleaseAgeExclude:
-  - '@void/deploy-cloudflare@1.6.1 || 1.6.2'
-  - '@void/deploy-core@1.6.1 || 1.6.2'
-  - '@void/edge@1.6.1 || 1.6.2'
-  - '@void/isr@1.6.1 || 1.6.2'
-  - '@void/platform@1.6.1 || 1.6.2'
+  - '@void/deploy-cloudflare@1.6.1 || 1.6.2 || 1.7.0'
+  - '@void/deploy-core@1.6.1 || 1.6.2 || 1.7.0'
+  - '@void/edge@1.6.1 || 1.6.2 || 1.7.0'
+  - '@void/isr@1.6.1 || 1.6.2 || 1.7.0'
+  - '@void/platform@1.6.1 || 1.6.2 || 1.7.0'
   - '@voidzero-dev/vite-plus-core@1.5.0'
   - '@voidzero-dev/vite-plus-darwin-arm64@1.5.0'
   - '@voidzero-dev/vite-plus-darwin-x64@1.5.0'
@@ -22,7 +22,8 @@ minimumReleaseAgeExclude:
   - '@voidzero-dev/vite-plus-win32-arm64-msvc@1.5.0'
   - '@voidzero-dev/vite-plus-win32-x64-msvc@1.5.0'
   - vite-plus@1.5.0
-  - void@1.6.1 || 1.6.2
-  - '@void/md@1.6.1 || 1.6.2'
+  - void@1.6.1 || 1.6.2 || 1.7.0
+  - '@void/md@1.6.1 || 1.6.2 || 1.7.0'
+  - '@cloudflare/workers-types@5.20261109.1'
 overrides:
   vite: npm:@voidzero-dev/vite-plus-core@^1.5.0

@@ -30,7 +30,7 @@ In a Void app using Vite 8, install the supported dependencies:
 
 ```sh
 pnpm add --save-exact preact@11.1.1 preact-render-to-string@6.8.2
-pnpm add -D --save-exact void-preact@0.1.2 void@1.6.2
+pnpm add -D --save-exact void-preact@0.1.3 void@1.7.0
 pnpm add -D vite@8
 ```
 
@@ -67,7 +67,7 @@ Main limitations: `useActionState` and `useOptimistic` are unavailable, `useTran
 
 | void-preact | Void (exact) | Preact (exact) | preact-render-to-string (exact) | Vite |
 | --- | --- | --- | --- | --- |
-| 0.1.2 | 1.6.2 | 11.1.1 | 6.8.2 | ^8.0.0 |
+| 0.1.3 | 1.7.0 | 11.1.1 | 6.8.2 | ^8.0.0 |
 
 Versions are exact because the adapter uses Void's adapter-facing entries and [private Preact Suspense behavior](docs/DESIGN.md#private-suspense-support-contract). For older versions, see [GitHub releases](https://github.com/yujiym/void-preact/releases).
 

@@ -21,7 +21,36 @@ import {
 import type { ActionUrl, ResolveActionBody, ActionFormOptions } from 'void/routes';
 import { RouterContext } from './context.ts';
 
-type SubmitPayload = FormData | { method: string };
+type SubmitPayload = {
+  method: string;
+  snapshot: Record<string, unknown>;
+  dispatchData: Record<string, unknown>;
+};
+
+type SubmissionOutcome =
+  | { status: 'idle'; defaults: Record<string, unknown> }
+  | { status: 'success'; defaults: Record<string, unknown> }
+  | { status: 'validation'; defaults: Record<string, unknown>; errors: Record<string, string> }
+  | { status: 'error'; defaults: Record<string, unknown>; error: VoidActionError };
+
+type ErrorEdits = {
+  source: SubmissionOutcome;
+  errors?: Record<string, string>;
+  dismissActionError?: boolean;
+};
+
+const EMPTY_ERRORS: Record<string, string> = {};
+
+function resolveOutcomeErrors(
+  outcome: SubmissionOutcome,
+  edits: ErrorEdits | null,
+): Record<string, string> {
+  if (edits?.source === outcome && edits.errors !== undefined) {
+    return edits.errors;
+  }
+  return outcome.status === 'validation' ? outcome.errors : EMPTY_ERRORS;
+}
+
 // Submit methods are native form actions that take FormData.
 type FormReturn<TData> = FormState<TData, 'setters'> &
   Readonly<{
@@ -54,75 +83,29 @@ export function useForm(
 ): FormReturn<Record<string, unknown>> {
   const router = useContext(RouterContext);
   const [data, setDataState] = useState<Record<string, unknown>>(() => cloneFormValue(defaults));
-  const [defaultsState, setDefaultsState] = useState<Record<string, unknown>>(() =>
-    cloneFormValue(defaults),
-  );
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [error, setActionError] = useState<VoidActionError | null>(null);
-  const [wasSuccessful, setWasSuccessful] = useState(false);
-  const [recentlySuccessful, setRecentlySuccessful] = useState(false);
+  const [initialDefaults] = useState<Record<string, unknown>>(() => cloneFormValue(defaults));
+  const [errorEdits, setErrorEdits] = useState<ErrorEdits | null>(null);
+  const [expiredOutcome, setExpiredOutcome] = useState<SubmissionOutcome | null>(null);
 
-  const defaultsRef = useRef(defaultsState);
-  const initialRef = useRef(defaultsState);
   const dataRef = useRef(data);
-  const successTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const callbackOutcomeRef = useRef<SubmissionOutcome | null>(null);
 
-  const hasChanges = useMemo(() => {
-    return Object.keys(defaultsState).some(
-      (key) => !isEqualFormValue(data[key], defaultsState[key]),
-    );
-  }, [data, defaultsState]);
-
-  const setData = useCallback((field: string, value: unknown) => {
-    dataRef.current = { ...dataRef.current, [field]: value };
-    setDataState(dataRef.current);
-    setErrors((prev) => {
-      if (!(field in prev)) {
-        return prev;
+  const runErrorCallback = async (
+    nextOutcome: SubmissionOutcome,
+    errorArg: Record<string, string> | VoidActionError,
+  ): Promise<SubmissionOutcome> => {
+    callbackOutcomeRef.current = nextOutcome;
+    try {
+      await options?.onError?.(errorArg);
+    } finally {
+      if (callbackOutcomeRef.current === nextOutcome) {
+        callbackOutcomeRef.current = null;
       }
-      const next = { ...prev };
-      delete next[field];
-      return next;
-    });
-  }, []);
-
-  const reset = useCallback((...args: ReadonlyArray<string | FormResetOptions>) => {
-    const { initial, fields } = parseFormResetArgs(args);
-    const source = initial ? initialRef.current : defaultsRef.current;
-    if (fields.length === 0) {
-      dataRef.current = cloneFormValue(source);
-    } else {
-      const next = { ...dataRef.current };
-      for (const field of fields) {
-        next[field] = cloneFormValue(source[field]);
-      }
-      dataRef.current = next;
     }
-    setDataState(dataRef.current);
-  }, []);
+    return nextOutcome;
+  };
 
-  const clearErrors = useCallback((...fields: ReadonlyArray<string>) => {
-    if (fields.length === 0) {
-      setErrors({});
-    } else {
-      setErrors((prev) => {
-        const next = { ...prev };
-        for (const field of fields) {
-          delete next[field];
-        }
-        return next;
-      });
-    }
-  }, []);
-
-  const setError = useCallback((field: string, message: string) => {
-    setErrors((prev) => ({ ...prev, [field]: message }));
-  }, []);
-
-  const clearError = useCallback(() => {
-    setActionError(null);
-  }, []);
-
+<<<<<<< void-preact
   const [pendingCount, setPendingCount] = useState(0);
   const [failure, setFailure] = useState<{ error: unknown } | null>(null);
   const queueRef = useRef<Promise<void>>(Promise.resolve());
@@ -131,34 +114,31 @@ export function useForm(
   }
 
   const submit = async (payload: SubmitPayload) => {
+=======
+  const [outcome, dispatchAction, pending] = useActionState<SubmissionOutcome, SubmitPayload>(
+    async (previousOutcome, payload) => {
+>>>>>>> new upstream
       if (!router) {
         throw new Error('useForm(): requires the Void Router.');
       }
-
-      const method = payload instanceof FormData ? 'POST' : payload.method;
-
-      setWasSuccessful(false);
-      setRecentlySuccessful(false);
-      if (successTimeoutRef.current) {
-        clearTimeout(successTimeoutRef.current);
-        successTimeoutRef.current = null;
-      }
-      setErrors({});
-      setActionError(null);
 
       let result;
       try {
         // Params are filled in on submit, so a param that would change the
         // request path (such as "..") fails this submit, not the page render.
         result = await submitAction(router, interpolateRouteParams(url, options?.params), {
-          method,
-          data: { ...dataRef.current },
+          method: payload.method,
+          data: payload.snapshot,
           preserveScroll: options?.preserveScroll,
           _resolveOnShell: true,
         });
       } catch (submitError) {
         if (isAbortError(submitError)) {
+<<<<<<< void-preact
           return;
+=======
+          return { status: 'idle', defaults: previousOutcome.defaults };
+>>>>>>> new upstream
         }
         throw submitError;
       }
@@ -166,19 +146,47 @@ export function useForm(
       if (!result.ok) {
         const validationErrors = getValidationErrors(result.error.body);
         if (validationErrors) {
-          setErrors(validationErrors);
-          await options?.onError?.(validationErrors);
-        } else {
-          setActionError(result.error);
-          await options?.onError?.(result.error);
+          return runErrorCallback(
+            {
+              status: 'validation',
+              defaults: previousOutcome.defaults,
+              errors: validationErrors,
+            },
+            validationErrors,
+          );
         }
+<<<<<<< void-preact
         return;
+=======
+        return runErrorCallback(
+          {
+            status: 'error',
+            defaults: previousOutcome.defaults,
+            error: result.error,
+          },
+          result.error,
+        );
+>>>>>>> new upstream
       }
 
-      if (options?.resetOnSuccess) {
-        dataRef.current = cloneFormValue(initialRef.current);
+      const nextDefaults = options?.resetOnSuccess
+        ? cloneFormValue(initialDefaults)
+        : cloneFormValue(payload.snapshot);
+      const nextOutcome: SubmissionOutcome = { status: 'success', defaults: nextDefaults };
+      // Helpers called after an await still belong to this successful submission.
+      callbackOutcomeRef.current = nextOutcome;
+      try {
+        await options?.onSuccess?.();
+      } finally {
+        if (callbackOutcomeRef.current === nextOutcome) {
+          callbackOutcomeRef.current = null;
+        }
+      }
+      if (options?.resetOnSuccess && dataRef.current === payload.dispatchData) {
+        dataRef.current = cloneFormValue(initialDefaults);
         setDataState(dataRef.current);
       }
+<<<<<<< void-preact
       const nextDefaults = cloneFormValue(dataRef.current);
       defaultsRef.current = nextDefaults;
       setDefaultsState(nextDefaults);
@@ -202,21 +210,137 @@ export function useForm(
       .finally(() => setPendingCount((count) => count - 1));
     return queueRef.current;
   }, []);
+=======
+      return nextOutcome;
+    },
+    { status: 'idle', defaults: initialDefaults },
+  );
+>>>>>>> new upstream
+
+  const defaultsState = outcome.defaults;
+  const hasChanges = useMemo(() => {
+    return Object.keys(defaultsState).some(
+      (key) => !isEqualFormValue(data[key], defaultsState[key]),
+    );
+  }, [data, defaultsState]);
+
+  const setData = useCallback(
+    (field: string, value: unknown) => {
+      const previousValue = dataRef.current[field];
+      dataRef.current = { ...dataRef.current, [field]: value };
+      setDataState(dataRef.current);
+      if (isEqualFormValue(previousValue, value)) {
+        return;
+      }
+      const target = callbackOutcomeRef.current ?? outcome;
+      setErrorEdits((prev) => {
+        const current = resolveOutcomeErrors(target, prev);
+        if (!(field in current)) {
+          return prev;
+        }
+        const next = { ...current };
+        delete next[field];
+        return {
+          ...(prev?.source === target ? prev : { source: target }),
+          errors: next,
+        };
+      });
+    },
+    [outcome],
+  );
+
+  const reset = useCallback(
+    (...args: ReadonlyArray<string | FormResetOptions>) => {
+      const { initial, fields } = parseFormResetArgs(args);
+      const target = callbackOutcomeRef.current ?? outcome;
+      const source = initial ? initialDefaults : target.defaults;
+      if (fields.length === 0) {
+        dataRef.current = cloneFormValue(source);
+      } else {
+        const next = { ...dataRef.current };
+        for (const field of fields) {
+          next[field] = cloneFormValue(source[field]);
+        }
+        dataRef.current = next;
+      }
+      setDataState(dataRef.current);
+    },
+    [initialDefaults, outcome],
+  );
+
+  const clearErrors = useCallback(
+    (...fields: ReadonlyArray<string>) => {
+      const target = callbackOutcomeRef.current ?? outcome;
+      setErrorEdits((prev) => {
+        const base = prev?.source === target ? prev : { source: target };
+        if (fields.length === 0) {
+          return { ...base, errors: EMPTY_ERRORS };
+        }
+        const next = { ...resolveOutcomeErrors(target, prev) };
+        for (const field of fields) {
+          delete next[field];
+        }
+        return { ...base, errors: next };
+      });
+    },
+    [outcome],
+  );
+
+  const setError = useCallback(
+    (field: string, message: string) => {
+      const target = callbackOutcomeRef.current ?? outcome;
+      setErrorEdits((prev) => ({
+        ...(prev?.source === target ? prev : { source: target }),
+        errors: { ...resolveOutcomeErrors(target, prev), [field]: message },
+      }));
+    },
+    [outcome],
+  );
+
+  const clearError = useCallback(() => {
+    const target = callbackOutcomeRef.current ?? outcome;
+    setErrorEdits((prev) => ({
+      ...(prev?.source === target ? prev : { source: target }),
+      dismissActionError: true,
+    }));
+  }, [outcome]);
+
+  const errors = pending ? EMPTY_ERRORS : resolveOutcomeErrors(outcome, errorEdits);
+  const error: VoidActionError | null =
+    pending ||
+    outcome.status !== 'error' ||
+    (errorEdits?.source === outcome && errorEdits.dismissActionError)
+      ? null
+      : outcome.error;
+  const wasSuccessful = !pending && outcome.status === 'success';
+  const recentlySuccessful = wasSuccessful && expiredOutcome !== outcome;
 
   useEffect(() => {
-    return () => {
-      if (successTimeoutRef.current) {
-        clearTimeout(successTimeoutRef.current);
-        successTimeoutRef.current = null;
-      }
-    };
-  }, []);
+    if (outcome.status !== 'success') {
+      return;
+    }
+    const timer = setTimeout(() => {
+      setExpiredOutcome(outcome);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [outcome]);
 
   const dispatchMethodAction = useCallback(
+<<<<<<< void-preact
     (method: string) => (_formData: FormData) => dispatchAction({ method }),
+=======
+    (method: string) => (_formData: FormData) => {
+      dispatchAction({
+        method,
+        snapshot: cloneFormValue(dataRef.current),
+        dispatchData: dataRef.current,
+      });
+    },
+>>>>>>> new upstream
     [dispatchAction],
   );
 
+  const post = useMemo(() => dispatchMethodAction('POST'), [dispatchMethodAction]);
   const put = useMemo(() => dispatchMethodAction('PUT'), [dispatchMethodAction]);
   const patch = useMemo(() => dispatchMethodAction('PATCH'), [dispatchMethodAction]);
   const deleteAction = useMemo(() => dispatchMethodAction('DELETE'), [dispatchMethodAction]);
@@ -230,7 +354,7 @@ export function useForm(
     hasChanges,
     wasSuccessful,
     recentlySuccessful,
-    post: dispatchAction,
+    post,
     put,
     patch,
     delete: deleteAction,

@@ -108,18 +108,19 @@ export function registerSharedClientTests({
     BASE = getBase();
   });
 
-  it('keeps action and form scroll in place, with resets for overrides and redirects', async ({
+  it('keeps the page query and scroll for actions and forms, with resets for overrides and redirects', async ({
     expect,
   }) => {
     const page = await newPage();
     try {
       await page.setViewportSize({ width: 1280, height: 800 });
-      await page.goto(BASE + '/scroll-restoration');
+      await page.goto(BASE + '/scroll-restoration?page=2');
       await waitForHydration(page);
       await page.evaluate(() => {
         (window as TestWindow).__SPA_MARKER = true;
       });
       const row = page.getByTestId('scroll-row-30');
+      const historyLength = await page.evaluate(() => history.length);
       for (const [button, preserved] of [
         ['Update action', true],
         ['Update form', true],
@@ -141,8 +142,15 @@ export function registerSharedClientTests({
           (scrollY) => Math.abs(window.scrollY - scrollY) < 0.5,
           preserved ? before : 0,
         );
+        if (button !== 'Redirect action') {
+          expect(page.url()).toBe(BASE + '/scroll-restoration?page=2');
+          expect(await page.getByTestId('scroll-page').textContent()).toBe('2');
+          expect(await page.evaluate(() => history.length)).toBe(historyLength);
+        }
       }
+      // The page query only re-renders the page in place; a redirect does not carry it.
       expect(page.url()).toBe(BASE + '/scroll-restoration?redirected=1');
+      expect(await page.getByTestId('scroll-page').textContent()).toBe('');
       expect(await page.evaluate(() => (window as TestWindow).__SPA_MARKER)).toBe(true);
     } finally {
       await page.context().close();
@@ -761,6 +769,58 @@ export function registerSharedClientTests({
       await waitForHydration(page);
       return page;
     }
+
+    it('keeps authentication and server failures inline and allows retrying with the draft intact', async ({
+      expect,
+    }) => {
+      const page = await openForm();
+      const errors: Array<string> = [];
+      page.on('pageerror', (error) => errors.push(error.message));
+      let status = 401;
+      await page.route('**/form-errors', async (route) => {
+        if (route.request().method() !== 'POST' || status === 200) {
+          await route.continue();
+          return;
+        }
+        await route.fulfill({
+          status,
+          contentType: 'application/json',
+          body: JSON.stringify({ errors: { email: 'Not a validation failure' } }),
+        });
+      });
+      try {
+        await page.getByLabel('Email', { exact: true }).fill('draft@example.com');
+        await page.getByLabel('Name', { exact: true }).fill('Keep this draft');
+        for (const failureStatus of [401, 403, 503]) {
+          status = failureStatus;
+          await page.getByRole('button', { name: 'Save', exact: true }).click();
+          await expect
+            .poll(() => page.getByTestId('action-error').textContent())
+            .toBe(String(status));
+          expect(await page.getByLabel('Email', { exact: true }).inputValue()).toBe(
+            'draft@example.com',
+          );
+          expect(await page.getByLabel('Name', { exact: true }).inputValue()).toBe(
+            'Keep this draft',
+          );
+          expect(await page.getByTestId('errors').textContent()).toBe('{}');
+        }
+        status = 200;
+        const retry = page.waitForResponse(
+          (response) =>
+            response.url() === BASE + '/form-errors' && response.request().method() === 'POST',
+        );
+        await page.getByRole('button', { name: 'Save', exact: true }).click();
+        expect((await retry).status()).toBe(200);
+        await expect
+          .poll(() => page.getByRole('button', { name: 'Save', exact: true }).isEnabled())
+          .toBe(true);
+        await expect.poll(() => page.getByTestId('action-error').textContent()).toBe('');
+        expect(errors).toEqual([]);
+      } finally {
+        await page.context().close();
+      }
+    });
 
     it('preserves new client validation errors and clears only edited fields', async ({
       expect,

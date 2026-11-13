@@ -78,6 +78,7 @@ const config: PortConfig = {
     'runtime/form.tsx',
     'runtime/index.ts',
     'runtime/link.tsx',
+    'runtime/PageErrorBoundary.tsx',
     'runtime/pages-client.ts',
     'runtime/pages-server.ts',
     'runtime/use-form.ts',
@@ -110,13 +111,13 @@ const config: PortConfig = {
     {
       file: "packages/preact/test/integration/preact-pages-client.test.ts",
       from: "import { PAGES_PROTOCOL_VERSION } from '../../../edge/src/pages-protocol.ts';",
-      to: "const PAGES_PROTOCOL_VERSION = '1';",
+      to: "const PAGES_PROTOCOL_VERSION = '2';",
       reason: "PAGES_PROTOCOL_VERSION is only exported by the transitive @void/edge. A protocol bump fails these tests, which is the signal to update this value.",
     },
     {
       file: "packages/preact/test/integration/preact-pages-navigation-fallback.test.ts",
       from: "import { PAGES_PROTOCOL_VERSION } from '../../../edge/src/pages-protocol.ts';",
-      to: "const PAGES_PROTOCOL_VERSION = '1';",
+      to: "const PAGES_PROTOCOL_VERSION = '2';",
       reason: "PAGES_PROTOCOL_VERSION is only exported by the transitive @void/edge. A protocol bump fails these tests, which is the signal to update this value.",
     },
     {
@@ -128,7 +129,7 @@ const config: PortConfig = {
     {
       file: "test/pages-client-contract.ts",
       from: "import { PAGES_PROTOCOL_VERSION } from '../packages/edge/src/pages-protocol.ts';",
-      to: "const PAGES_PROTOCOL_VERSION = '1';",
+      to: "const PAGES_PROTOCOL_VERSION = '2';",
       reason: "PAGES_PROTOCOL_VERSION is only exported by the transitive @void/edge. A protocol bump fails these tests, which is the signal to update this value.",
     },
     {
@@ -238,6 +239,18 @@ const config: PortConfig = {
       from: 'expect(onCaughtError).toHaveBeenCalledWith(failure, expect.anything());',
       to: '',
       reason: 'onCaughtError is a React root option. The test still asserts the boundary renders.',
+    },
+    {
+      file: 'packages/preact/test/unit/use-form.test.ts',
+      from: '      expect(onCaughtError).not.toHaveBeenCalled();\n',
+      to: '',
+      reason: 'onCaughtError is a React root option. The test still asserts the form, not the boundary, renders.',
+    },
+    {
+      file: 'packages/preact/test/integration/preact-pages-navigation-fallback.test.ts',
+      from: "it.each([\n  { method: 'POST', fallback: true },",
+      to: "it.skip.each([\n  { method: 'POST', fallback: true },",
+      reason: 'Skips the it.each table that divergences cannot name. It holds navigation loading inside an async React.startTransition; preact/compat runs startTransition synchronously, so Preact has no pending action to wait for.',
     },
     {
       file: 'playground/preact-pages/pages/users/index.tsx',

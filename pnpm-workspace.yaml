@@ -7,11 +7,11 @@ allowBuilds:
   esbuild: true
   workerd: true
 minimumReleaseAgeExclude:
-  - '@void/deploy-cloudflare@1.6.1 || 1.6.2 || 1.7.0'
-  - '@void/deploy-core@1.6.1 || 1.6.2 || 1.7.0'
-  - '@void/edge@1.6.1 || 1.6.2 || 1.7.0'
-  - '@void/isr@1.6.1 || 1.6.2 || 1.7.0'
-  - '@void/platform@1.6.1 || 1.6.2 || 1.7.0'
+  - '@void/deploy-cloudflare@1.6.1 || 1.6.2 || 1.7.0 || 1.8.0'
+  - '@void/deploy-core@1.6.1 || 1.6.2 || 1.7.0 || 1.8.0'
+  - '@void/edge@1.6.1 || 1.6.2 || 1.7.0 || 1.8.0'
+  - '@void/isr@1.6.1 || 1.6.2 || 1.7.0 || 1.8.0'
+  - '@void/platform@1.6.1 || 1.6.2 || 1.7.0 || 1.8.0'
   - '@voidzero-dev/vite-plus-core@1.5.0'
   - '@voidzero-dev/vite-plus-darwin-arm64@1.5.0'
   - '@voidzero-dev/vite-plus-darwin-x64@1.5.0'
@@ -22,8 +22,18 @@ minimumReleaseAgeExclude:
   - '@voidzero-dev/vite-plus-win32-arm64-msvc@1.5.0'
   - '@voidzero-dev/vite-plus-win32-x64-msvc@1.5.0'
   - vite-plus@1.5.0
-  - void@1.6.1 || 1.6.2 || 1.7.0
-  - '@void/md@1.6.1 || 1.6.2 || 1.7.0'
+  - void@1.6.1 || 1.6.2 || 1.7.0 || 1.8.0
+  - '@void/md@1.6.1 || 1.6.2 || 1.7.0 || 1.8.0'
   - '@cloudflare/workers-types@5.20261109.1'
+  - '@cloudflare/build-output-utils@0.9.13'
+  - '@cloudflare/codemods@0.7.7'
+  - '@cloudflare/config@0.32.0'
+  - '@cloudflare/runtime-types@0.1.26'
+  - '@cloudflare/vite-plugin@2.0.0-beta.v.15'
+  - '@cloudflare/workers-auth@0.18.1'
+  - '@cloudflare/workers-utils@0.53.1'
+  - cf@1.0.0-beta.30
+  - hono@4.13.18
+  - miniflare@5.20261110.1-beta
 overrides:
   vite: npm:@voidzero-dev/vite-plus-core@^1.5.0

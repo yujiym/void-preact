@@ -1,4 +1,4 @@
-import { Fragment, h, hydrate, render, type ComponentChildren, type ComponentType, type VNode } from 'preact';
+import { Component, Fragment, h, hydrate, render, type ComponentChildren, type ComponentType } from 'preact';
 import {
   useCallback,
   useContext,
@@ -16,6 +16,9 @@ import {
   isAbortError,
   isCallSiteActionError,
   refreshPage,
+  pageBoundarySlots,
+  showTerminalPageError,
+  type BoundaryManifest,
   toUrlString,
   type PageNavigationResource,
   type PageNavigationResult,
@@ -35,6 +38,7 @@ import {
   SharedContext,
 } from './context.ts';
 import { DEFERRED_SHELL_END_ID } from './deferred-shell.ts';
+import { PageErrorBoundary } from './PageErrorBoundary.tsx';
 import { SettledSuspense } from './settled-suspense.ts';
 
 // oxlint-disable-next-line no-explicit-any -- component props are narrowed by generated route types
@@ -44,6 +48,8 @@ type PreactPageComponent = ComponentType<Record<string, unknown>>;
 type PreactLayoutComponent = ComponentType<{ children?: ComponentChildren }>;
 
 export type PreactPagesConfig = Readonly<{
+  boundaryManifest?: BoundaryManifest;
+  dev?: boolean;
   components: Record<string, () => Promise<ComponentModule>>;
   layoutTree: Record<string, Array<string>>;
   routeMeta: Record<string, { island?: boolean; prerender?: boolean }>;
@@ -113,6 +119,7 @@ const pendingVisitSettlers = new Map<number, VisitSettler>();
 const committedResources = new Set<number>();
 const EMPTY_PARAMS: Record<string, string> = {};
 
+let terminalResource: PreactPageResource | null = null;
 let activePendingNavigationId: number | null = null;
 // The URL the prerendered HTML was rendered with, while it differs from the browser URL. The
 // hydration commit clears it before effects run, so effects and later renders read the browser URL.
@@ -323,9 +330,13 @@ function createRouter(engine: Awaited<ReturnType<typeof createPageNavigationEngi
 function RouteResource({
   resource,
   onCommit,
+  config,
+  onFailure,
 }: {
   resource: PreactPageResource;
   onCommit(resource: PreactPageResource, result: PageNavigationResult): void;
+  config: PreactPagesConfig;
+  onFailure(url: string): void;
 }): ComponentChildren {
   const { result } = resource;
   // Suspending, not returning, keeps the mounted layouts while a fallback shows.
@@ -365,11 +376,40 @@ function RouteResource({
   }, [outerRouter, pageDataUrl, resource.fetchUrl, resource.hash, routeParams]);
 
   const PageComponent = result.component as PreactPageComponent;
-  let element: VNode<any> = h(PageComponent, pageData.props);
+  const boundaries = pageBoundarySlots(
+    config.boundaryManifest,
+    pageData.component,
+    config.components,
+  );
+  const wrap = (element: ComponentChildren, depth: number) =>
+    boundaries
+      .filter((b) => b.depth === depth)
+      .reduce<ComponentChildren>(
+        (child, boundary) =>
+          h(
+            PageErrorBoundary,
+            {
+              boundary,
+              key: boundary.key,
+              generation: resource.id,
+              dev: config.dev,
+              onFailure: () => {
+                onFailure(resource.fetchUrl);
+                if (resource.resolvedUrl) {
+                  onFailure(resource.resolvedUrl);
+                }
+              },
+            },
+            child,
+          ),
+        element,
+      );
+  let element: ComponentChildren = h(PageComponent, pageData.props);
   for (let i = result.layouts.length - 1; i >= 0; i--) {
     const Layout = result.layouts[i] as PreactLayoutComponent;
-    element = h(Layout, null, element);
+    element = h(Layout, null, wrap(element, i + 1));
   }
+  element = wrap(element, 0);
 
   return h(
     RouterContext.Provider,
@@ -408,11 +448,13 @@ function startViewTransition(
 }
 
 function App({
+  config,
   engine,
   router,
   viewTransitions,
   navigationFallback: NavigationFallback,
 }: {
+  config: PreactPagesConfig;
   engine: Awaited<ReturnType<typeof createPageNavigationEngine>>;
   router: VoidRouter;
   viewTransitions: boolean;
@@ -564,6 +606,9 @@ function App({
 
       const next: PreactPageResource = {
         ...prepared,
+        get resolvedUrl() {
+          return prepared.resolvedUrl;
+        },
         shell: prepared.shell.then(
           (result) => {
             next.result = result;
@@ -622,6 +667,7 @@ function App({
       };
       const navigation = navigationForResource(next);
 
+      terminalResource = next;
       pendingVisitSettlers.set(next.id, { resolve: resolveVisit, reject: rejectVisit });
       activePendingNavigationId = next.id;
       dispatch({ type: 'begin', resource: next, navigation });
@@ -702,13 +748,37 @@ function App({
               ? h(NavigationFallback, { initialPageData })
               : null,
         },
-        h(RouteResource, { resource: state.resource, onCommit: finishNavigation }),
+        h(RouteResource, {
+          resource: state.resource,
+          onCommit: finishNavigation,
+          config,
+          onFailure: (url: string) => engine.flush(url),
+        }),
       ),
     ),
   );
 }
 
+/**
+ * Preact has no root `onUncaughtError`. This boundary receives what no page boundary handled
+ * and then renders nothing, as a React root does after an uncaught error.
+ */
+class UncaughtErrorBoundary extends Component<
+  { onError(error: unknown): void; children?: ComponentChildren },
+  { failed: boolean }
+> {
+  state = { failed: false };
+  componentDidCatch(error: unknown): void {
+    this.setState({ failed: true });
+    this.props.onError(error);
+  }
+  render(): ComponentChildren {
+    return this.state.failed ? null : this.props.children;
+  }
+}
+
 export async function startPreactPages(config: PreactPagesConfig): Promise<PreactPagesClient> {
+  terminalResource = null;
   viewTransitionWaiters.clear();
   pendingVisitSettlers.clear();
   committedResources.clear();
@@ -733,6 +803,13 @@ export async function startPreactPages(config: PreactPagesConfig): Promise<Preac
     prefetchDefaultCacheFor: config.prefetchDefaultCacheFor,
     prefetchDefaultStrategy: config.prefetchDefaultStrategy,
     cacheVisitedPageData: config.cacheVisitedPageData,
+    boundaryManifest: config.boundaryManifest,
+    dev: config.dev,
+  }).catch((error) => {
+    if (config.boundaryManifest && Object.keys(config.boundaryManifest.plans).length) {
+      showTerminalPageError();
+    }
+    throw error;
   });
   const router = createRouter(engine);
   setActionRouter(router);
@@ -746,12 +823,44 @@ export async function startPreactPages(config: PreactPagesConfig): Promise<Preac
   if (isSsr) {
     prerenderedUrl = prerenderedRouteUrl(engine.initialPageData as PreactPageData);
   }
-  const appRoot = h(App, {
+  const app = h(App, {
+    config,
     engine,
     router,
     viewTransitions: config.viewTransitions,
     navigationFallback: config.navigationFallback,
   });
+  const appRoot =
+    config.boundaryManifest && Object.keys(config.boundaryManifest.plans).length
+      ? h(
+          UncaughtErrorBoundary,
+          {
+            onError: (error: unknown) => {
+              const resource = terminalResource;
+              if (resource) {
+                resource.dispose();
+                engine.flush(resource.fetchUrl);
+                engine.flush(resource.resolvedUrl ?? resource.fetchUrl);
+              }
+              for (const settler of pendingVisitSettlers.values()) {
+                settler.reject(error);
+              }
+              pendingVisitSettlers.clear();
+              for (const resolve of viewTransitionWaiters.values()) {
+                resolve();
+              }
+              viewTransitionWaiters.clear();
+              activePendingNavigationId = null;
+              showTerminalPageError(
+                resource
+                  ? (resource.resolvedUrl ?? resource.fetchUrl + resource.hash)
+                  : currentUrl(),
+              );
+            },
+          },
+          app,
+        )
+      : app;
   const hasDeferred = Boolean((engine.initialPageData as PreactPageData).deferredKeys);
   // Preact renders synchronously, so the engine must be listening before the first commit.
   engine.start();

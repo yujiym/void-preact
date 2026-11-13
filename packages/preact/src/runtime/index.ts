@@ -25,10 +25,7 @@ export {
 } from './context.ts';
 export type { InferProps } from 'void';
 export type Deferred<T> = Promise<T>;
-<<<<<<< void-preact
 // Only preact/compat provides these. Pages read deferred props with them.
 export { Suspense, use } from 'preact/compat';
-=======
 
 export type { PageError, ErrorPageProps } from 'void/pages-client';
->>>>>>> new upstream

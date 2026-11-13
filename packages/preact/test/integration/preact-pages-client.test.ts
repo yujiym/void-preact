@@ -18,7 +18,7 @@ import {
   defineSharedIslandHmrTests,
   defineSharedIslandTests,
 } from '../../../../test/pages-island-contract.ts';
-const PAGES_PROTOCOL_VERSION = '1';
+const PAGES_PROTOCOL_VERSION = '2';
 import { decodePageData, deserializePageData } from 'void/pages-server';
 
 declare global {

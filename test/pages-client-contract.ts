@@ -1,6 +1,6 @@
 import type { Page, Request } from 'playwright';
 import { beforeAll, describe, expect, it } from 'vite-plus/test';
-const PAGES_PROTOCOL_VERSION = '1';
+const PAGES_PROTOCOL_VERSION = '2';
 import {
   decodePageData,
   deserializePageData,

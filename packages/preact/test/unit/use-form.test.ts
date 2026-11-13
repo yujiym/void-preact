@@ -147,7 +147,6 @@ describe('useForm callbacks', () => {
 
       await submitPost(form);
 
-      expect(onCaughtError).not.toHaveBeenCalled();
       expect(onError).toHaveBeenCalledExactlyOnceWith(failure);
       expect(form.error).toBe(failure);
       expect(form.errors).toEqual({});

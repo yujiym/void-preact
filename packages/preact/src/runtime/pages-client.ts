@@ -1,4 +1,4 @@
-import { Fragment, h, hydrate, render, type ComponentChildren, type ComponentType, type VNode } from 'preact';
+import { Component, Fragment, h, hydrate, render, type ComponentChildren, type ComponentType } from 'preact';
 import {
   useCallback,
   useContext,
@@ -8,12 +8,6 @@ import {
   useReducer,
   useRef,
   useState,
-<<<<<<< void-preact
-=======
-  useSyncExternalStore,
-  useTransition,
-  type ComponentType,
->>>>>>> new upstream
 } from 'preact/hooks';
 import {
   createRouterFacade,
@@ -44,11 +38,8 @@ import {
   SharedContext,
 } from './context.ts';
 import { DEFERRED_SHELL_END_ID } from './deferred-shell.ts';
-<<<<<<< void-preact
-import { SettledSuspense } from './settled-suspense.ts';
-=======
 import { PageErrorBoundary } from './PageErrorBoundary.tsx';
->>>>>>> new upstream
+import { SettledSuspense } from './settled-suspense.ts';
 
 // oxlint-disable-next-line no-explicit-any -- component props are narrowed by generated route types
 type ComponentModule = { default: ComponentType<any> };
@@ -56,13 +47,9 @@ type PreactPageData = PageObject;
 type PreactPageComponent = ComponentType<Record<string, unknown>>;
 type PreactLayoutComponent = ComponentType<{ children?: ComponentChildren }>;
 
-<<<<<<< void-preact
 export type PreactPagesConfig = Readonly<{
-=======
-export type ReactPagesConfig = Readonly<{
   boundaryManifest?: BoundaryManifest;
   dev?: boolean;
->>>>>>> new upstream
   components: Record<string, () => Promise<ComponentModule>>;
   layoutTree: Record<string, Array<string>>;
   routeMeta: Record<string, { island?: boolean; prerender?: boolean }>;
@@ -132,7 +119,7 @@ const pendingVisitSettlers = new Map<number, VisitSettler>();
 const committedResources = new Set<number>();
 const EMPTY_PARAMS: Record<string, string> = {};
 
-let terminalResource: ReactPageResource | null = null;
+let terminalResource: PreactPageResource | null = null;
 let activePendingNavigationId: number | null = null;
 // The URL the prerendered HTML was rendered with, while it differs from the browser URL. The
 // hydration commit clears it before effects run, so effects and later renders read the browser URL.
@@ -346,9 +333,10 @@ function RouteResource({
   config,
   onFailure,
 }: {
-<<<<<<< void-preact
   resource: PreactPageResource;
   onCommit(resource: PreactPageResource, result: PageNavigationResult): void;
+  config: PreactPagesConfig;
+  onFailure(url: string): void;
 }): ComponentChildren {
   const { result } = resource;
   // Suspending, not returning, keeps the mounted layouts while a fallback shows.
@@ -356,15 +344,6 @@ function RouteResource({
     throw resource.shell;
   }
   const outerRouter = useContext(RouterContext);
-=======
-  resource: ReactPageResource;
-  onCommit(resource: ReactPageResource, result: PageNavigationResult): void;
-  config: ReactPagesConfig;
-  onFailure(url: string): void;
-}): React.ReactNode {
-  const result = use(resource.shell);
-  const outerRouter = React.useContext(RouterContext);
->>>>>>> new upstream
   useLayoutEffect(() => {
     return SettledSuspense.whenSettled(() => onCommit(resource, result));
   }, [onCommit, resource, result]);
@@ -396,30 +375,18 @@ function RouteResource({
     );
   }, [outerRouter, pageDataUrl, resource.fetchUrl, resource.hash, routeParams]);
 
-<<<<<<< void-preact
   const PageComponent = result.component as PreactPageComponent;
-  let element: VNode<any> = h(PageComponent, pageData.props);
-  for (let i = result.layouts.length - 1; i >= 0; i--) {
-    const Layout = result.layouts[i] as PreactLayoutComponent;
-    element = h(Layout, null, element);
-=======
-  // Hooks above run on every render, so a resource with no result keeps the hook count.
-  if (!result || !pageData) {
-    return null;
-  }
-
-  const PageComponent = result.component as ReactPageComponent;
   const boundaries = pageBoundarySlots(
     config.boundaryManifest,
     pageData.component,
     config.components,
   );
-  const wrap = (element: React.ReactNode, depth: number) =>
+  const wrap = (element: ComponentChildren, depth: number) =>
     boundaries
       .filter((b) => b.depth === depth)
-      .reduce(
+      .reduce<ComponentChildren>(
         (child, boundary) =>
-          React.createElement(
+          h(
             PageErrorBoundary,
             {
               boundary,
@@ -437,11 +404,10 @@ function RouteResource({
           ),
         element,
       );
-  let element: React.ReactNode = React.createElement(PageComponent, pageData.props);
+  let element: ComponentChildren = h(PageComponent, pageData.props);
   for (let i = result.layouts.length - 1; i >= 0; i--) {
-    const Layout = result.layouts[i] as ReactLayoutComponent;
-    element = React.createElement(Layout, null, wrap(element, i + 1));
->>>>>>> new upstream
+    const Layout = result.layouts[i] as PreactLayoutComponent;
+    element = h(Layout, null, wrap(element, i + 1));
   }
   element = wrap(element, 0);
 
@@ -488,7 +454,7 @@ function App({
   viewTransitions,
   navigationFallback: NavigationFallback,
 }: {
-  config: ReactPagesConfig;
+  config: PreactPagesConfig;
   engine: Awaited<ReturnType<typeof createPageNavigationEngine>>;
   router: VoidRouter;
   viewTransitions: boolean;
@@ -532,7 +498,6 @@ function App({
     routeUrl: currentUrl(),
     navigation: idleNavigationState(),
   });
-<<<<<<< void-preact
   const boundary = useRef<SettledSuspense | null>(null);
   const boundaryIdentity = useRef({ resource: initialResource, generation: 0 });
   if (boundaryIdentity.current.resource !== state.resource) {
@@ -543,31 +508,6 @@ function App({
       boundaryIdentity.current.generation++;
     }
   }
-=======
-  const [isTransitionPending, startTransition] = useTransition();
-  const [navigationStore] = useState(() => {
-    let snapshot = idleNavigationState();
-    const listeners = new Set<() => void>();
-    return {
-      getSnapshot: () => snapshot,
-      subscribe(listener: () => void) {
-        listeners.add(listener);
-        return () => listeners.delete(listener);
-      },
-      set(navigation: NavigationState) {
-        snapshot = navigation;
-        for (const listener of listeners) {
-          listener();
-        }
-      },
-    };
-  });
-  const lastNavigation = useSyncExternalStore(
-    navigationStore.subscribe,
-    navigationStore.getSnapshot,
-    navigationStore.getSnapshot,
-  );
->>>>>>> new upstream
 
   const finishNavigation = useCallback(
     (resource: PreactPageResource, result: PageNavigationResult) => {
@@ -635,7 +575,6 @@ function App({
         prepared.options.resolveOn === 'data' || prepared.options._resolveOnShell;
       if (prepared.immediate) {
         const navigation = navigationForResource(prepared);
-        navigationStore.set(navigation);
 
         activePendingNavigationId = prepared.id;
         dispatch({ type: 'begin', resource: prepared, navigation });
@@ -727,7 +666,6 @@ function App({
         ),
       };
       const navigation = navigationForResource(next);
-      navigationStore.set(navigation);
 
       terminalResource = next;
       pendingVisitSettlers.set(next.id, { resolve: resolveVisit, reject: rejectVisit });
@@ -766,11 +704,7 @@ function App({
       );
       return pagePromise;
     },
-<<<<<<< void-preact
     [engine, NavigationFallback, viewTransitions],
-=======
-    [engine, NavigationFallback, navigationStore, startTransition, viewTransitions],
->>>>>>> new upstream
   );
 
   // Effects run children first, so a page that visits from its own effect needs this set in render.
@@ -790,21 +724,6 @@ function App({
     });
   }, [engine, router]);
 
-<<<<<<< void-preact
-=======
-  const navigationValue = useMemo<NavigationState>(() => {
-    if (state.navigation.state !== 'idle' || !isTransitionPending) {
-      return state.navigation;
-    }
-    // Action transitions can delay the reducer's begin and finish updates. Keep
-    // the latest destination available synchronously throughout those renders.
-    return {
-      ...lastNavigation,
-      state: 'loading',
-    };
-  }, [isTransitionPending, lastNavigation, state.navigation]);
-
->>>>>>> new upstream
   const routerValue = useMemo(
     () =>
       createRouterFacade(router, () =>
@@ -829,16 +748,7 @@ function App({
               ? h(NavigationFallback, { initialPageData })
               : null,
         },
-<<<<<<< void-preact
-        h(RouteResource, { resource: state.resource, onCommit: finishNavigation }),
-      ),
-    ),
-  );
-}
-
-export async function startPreactPages(config: PreactPagesConfig): Promise<PreactPagesClient> {
-=======
-        React.createElement(RouteResource, {
+        h(RouteResource, {
           resource: state.resource,
           onCommit: finishNavigation,
           config,
@@ -849,9 +759,26 @@ export async function startPreactPages(config: PreactPagesConfig): Promise<Preac
   );
 }
 
-export async function startPreactPages(config: ReactPagesConfig): Promise<ReactPagesClient> {
+/**
+ * Preact has no root `onUncaughtError`. This boundary receives what no page boundary handled
+ * and then renders nothing, as a React root does after an uncaught error.
+ */
+class UncaughtErrorBoundary extends Component<
+  { onError(error: unknown): void; children?: ComponentChildren },
+  { failed: boolean }
+> {
+  state = { failed: false };
+  componentDidCatch(error: unknown): void {
+    this.setState({ failed: true });
+    this.props.onError(error);
+  }
+  render(): ComponentChildren {
+    return this.state.failed ? null : this.props.children;
+  }
+}
+
+export async function startPreactPages(config: PreactPagesConfig): Promise<PreactPagesClient> {
   terminalResource = null;
->>>>>>> new upstream
   viewTransitionWaiters.clear();
   pendingVisitSettlers.clear();
   committedResources.clear();
@@ -896,36 +823,19 @@ export async function startPreactPages(config: ReactPagesConfig): Promise<ReactP
   if (isSsr) {
     prerenderedUrl = prerenderedRouteUrl(engine.initialPageData as PreactPageData);
   }
-<<<<<<< void-preact
-  const appRoot = h(App, {
-=======
-  const appRoot = React.createElement(App, {
+  const app = h(App, {
     config,
->>>>>>> new upstream
     engine,
     router,
     viewTransitions: config.viewTransitions,
     navigationFallback: config.navigationFallback,
   });
-<<<<<<< void-preact
-  const hasDeferred = Boolean((engine.initialPageData as PreactPageData).deferredKeys);
-  // Preact renders synchronously, so the engine must be listening before the first commit.
-=======
-  const hasDeferred = Boolean((engine.initialPageData as ReactPageData).deferredKeys);
-  const app =
-    isSsr && hasDeferred
-      ? React.createElement(
-          React.Fragment,
-          null,
-          appRoot,
-          React.createElement('template', { id: DEFERRED_SHELL_END_ID }),
-        )
-      : appRoot;
-  startTransition(() => {
-    const rootOptions =
-      config.boundaryManifest && Object.keys(config.boundaryManifest.plans).length
-        ? {
-            onUncaughtError: (error: unknown) => {
+  const appRoot =
+    config.boundaryManifest && Object.keys(config.boundaryManifest.plans).length
+      ? h(
+          UncaughtErrorBoundary,
+          {
+            onError: (error: unknown) => {
               const resource = terminalResource;
               if (resource) {
                 resource.dispose();
@@ -947,15 +857,12 @@ export async function startPreactPages(config: ReactPagesConfig): Promise<ReactP
                   : currentUrl(),
               );
             },
-          }
-        : undefined;
-    if (!isSsr) {
-      createRoot(appEl, rootOptions).render(app);
-    } else {
-      hydrateRoot(appEl, app, rootOptions);
-    }
-  });
->>>>>>> new upstream
+          },
+          app,
+        )
+      : app;
+  const hasDeferred = Boolean((engine.initialPageData as PreactPageData).deferredKeys);
+  // Preact renders synchronously, so the engine must be listening before the first commit.
   engine.start();
   if (!isSsr) {
     render(appRoot, appEl);

@@ -12,8 +12,8 @@ import {
   RouterContext,
   SharedContext,
 } from './context.ts';
-import { DEFERRED_SHELL_END_ID } from './deferred-shell.ts';
-import { concatStreams, readDeferredShell } from './page-streams.ts';
+import { DEFERRED_SHELL_END_ID, readDeferredShell } from './deferred-shell-end.ts';
+import { concatStreams } from './page-streams.ts';
 
 // oxlint-disable-next-line no-explicit-any -- component props are narrowed by generated route types
 type ComponentModule = { default: ComponentType<any> };

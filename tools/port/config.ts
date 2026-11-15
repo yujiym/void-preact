@@ -26,9 +26,11 @@ const config: PortConfig = {
     'test/integration-helpers.ts',
     'test/island-css-build.ts',
     'test/island-page-browser.ts',
+    'test/islands-plugin-contract.ts',
     'test/pages-browser.ts',
     'test/pages-client-contract.ts',
     'test/pages-island-contract.ts',
+    'test/pages-plugin-contract.ts',
     'test/private-pages-build.ts',
   ],
 
@@ -276,12 +278,23 @@ const config: PortConfig = {
       to: 'data-void-pending',
       reason: 'preact-render-to-string writes an empty attribute as a bare name. The DOM is the same.',
     },
+    {
+      file: 'packages/preact/test/unit/plugin-pages.test.ts',
+      from: 'definePagesPluginTests(pagesPlugin, TMP, { reactRefresh: true });',
+      to: 'definePagesPluginTests(pagesPlugin, TMP);',
+      reason: 'Prefresh needs no React Refresh preamble in the dev renderer.',
+    },
   ],
 
   // Upstream tests this adapter skips, each with its reason. A title that disappears upstream
   // fails generation, so this list cannot go stale.
   // { file: generated path, title: exact test title, reason }
   divergences: [
+    {
+      file: 'packages/preact/test/integration/preact-pages-client.test.ts',
+      title: 'still reports real hydration errors on a page with deferred props',
+      reason: "Asserts React's hydration mismatch error. Preact hydrate patches mismatched text without reporting it.",
+    },
     {
       file: 'packages/preact/test/integration/preact-pages-client.test.ts',
       title: 'dev: client-only shells retain the React preamble and mount loader props',
@@ -296,11 +309,6 @@ const config: PortConfig = {
       file: 'packages/preact/test/unit/plugin-pages.test.ts',
       title: 'includes only the React entry points needed by each environment',
       reason: 'Preact has no client-only renderer entry. test/preact/plugin-pages.test.ts covers the Preact list.',
-    },
-    {
-      file: 'packages/preact/test/unit/plugin-pages.test.ts',
-      title: 'scans for dev when pages/ is created after the serve config',
-      reason: 'Asserts the React Refresh preamble. Prefresh needs none. test/preact/plugin-pages.test.ts covers the scan.',
     },
   ],
 };

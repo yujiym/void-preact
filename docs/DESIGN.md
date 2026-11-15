@@ -103,8 +103,8 @@ flowchart TD
   end
 
   subgraph review["Maintainer: review and merge"]
-    needsWork{"Conflict or possibly<br/>breaking release?"}
-    fix["Draft PR: resolve conflicts,<br/>write release notes, mark ready"]
+    needsWork{"Conflict, stale config, or<br/>possibly breaking release?"}
+    fix["Draft PR: resolve conflicts, fix config,<br/>write release notes, mark ready"]
     merge["Review the upstream diff and CI, then merge"]
     needsWork -- Yes --> fix --> merge
     needsWork -- No --> merge
@@ -167,9 +167,9 @@ Use Node from `.node-version` and the package manager in `package.json`. Install
 
 The daily sync workflow opens one branch per upstream tag and closes older open sync PRs without deleting their branches. Sync also applies `mechanical` source, three-way merges `ported` source, bumps the patch version, and updates the README row, so a clean sync only needs review and merge. A clean merge does not prove the code is correct under Preact: review the listed files against upstream.
 
-A conflict, or an upstream release that looks breaking, makes the PR a draft. Looking breaking means a major version, or release notes that mention a breaking change or `void migrate`; this is a heuristic, so add the `breaking` label by hand if it misses one. A breaking sync bumps the minor version instead. Write the change and its migration steps under `## Release notes` in the PR body, then mark it ready for review.
+A conflict, a stale entry in `testRewrites` or `divergences`, or an upstream release that looks breaking, makes the PR a draft. Sync lists stale entries in the report instead of failing; `check` still rejects them, so CI fails until they are fixed. Looking breaking means a major version, or release notes that mention a breaking change or `void migrate`; this is a heuristic, so add the `breaking` label by hand if it misses one. A breaking sync bumps the minor version instead. Write the change and its migration steps under `## Release notes` in the PR body, then mark it ready for review.
 
-A failed sync opens an issue linking the run. GitHub must allow Actions to create pull requests in the repository's Actions settings. Its bot-created pull request starts the normal PR workflow only after a maintainer approves it, so sync explicitly dispatches CI on that branch, including packed-consumer and comparison tests. Approval is unnecessary: it repeats the dispatched checks on the same commit. The generated `.node-version` follows the upstream snapshot; sync switches Node before updating the lockfile. Existing update branches are left for maintainer review. A failed sync step needs manual attention in the workflow log. It does not indicate that the current release has stopped working.
+A failed sync opens an issue linking the run and quoting the sync error. GitHub must allow Actions to create pull requests in the repository's Actions settings. Its bot-created pull request starts the normal PR workflow only after a maintainer approves it, so sync explicitly dispatches CI on that branch, including packed-consumer and comparison tests. Approval is unnecessary: it repeats the dispatched checks on the same commit. The generated `.node-version` follows the upstream snapshot; sync switches Node before updating the lockfile. Existing update branches are left for maintainer review. A failed sync step needs manual attention in the workflow log. It does not indicate that the current release has stopped working.
 
 To update locally on a clean branch:
 

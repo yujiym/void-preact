@@ -37,7 +37,7 @@ import {
   RouterContext,
   SharedContext,
 } from './context.ts';
-import { DEFERRED_SHELL_END_ID } from './deferred-shell.ts';
+import { DEFERRED_SHELL_END_ID } from './deferred-shell-end.ts';
 import { PageErrorBoundary } from './PageErrorBoundary.tsx';
 import { SettledSuspense } from './settled-suspense.ts';
 

@@ -30,17 +30,27 @@ function rewrite(text: string): string {
   return config.rewrites.reduce((out, [from, to]) => out.replaceAll(from, to), text);
 }
 
-function applyDivergences(path: string, text: string): string {
+/** A sync collects stale config entries in `sink` so it can still open a PR. Everything else throws. */
+function stale(sink: string[] | undefined, problem: string): void {
+  if (!sink) throw new Error(problem);
+  sink.push(problem);
+}
+
+function applyDivergences(path: string, text: string, sink: string[] | undefined): string {
   for (const { file, from, to } of config.testRewrites) {
     if (file !== path) continue;
-    if (!text.includes(from)) throw new Error(`Stale test rewrite in ${path}: ${from}`);
+    if (!text.includes(from)) {
+      stale(sink, `Stale test rewrite in ${path}: ${from}`);
+      continue;
+    }
     text = text.replaceAll(from, to);
   }
   for (const { file, title } of config.divergences) {
     if (file !== path) continue;
     const quoted = `it('${title.replaceAll("'", "\\'")}'`;
     if (!text.includes(quoted)) {
-      throw new Error(`Stale divergence. ${path} has no test titled: ${title}`);
+      stale(sink, `Stale divergence. ${path} has no test titled: ${title}`);
+      continue;
     }
     text = text.replace(quoted, `it.skip('${title.replaceAll("'", "\\'")}'`);
   }
@@ -48,7 +58,7 @@ function applyDivergences(path: string, text: string): string {
 }
 
 /** Every generated file, keyed by repo path. Overlay files replace generated ones. */
-function expectedFiles() {
+function expectedFiles(sink?: string[]) {
   const files = new Map<string, string | Buffer>();
   files.set('.node-version', readFileSync(join(UPSTREAM, '.node-version'), 'utf8'));
   for (const [from, to] of config.generate) {
@@ -58,7 +68,7 @@ function expectedFiles() {
       if (config.dropped.includes(target) || isPreserved(target)) continue;
       files.set(
         target,
-        isText(abs) ? applyDivergences(target, rewrite(readFileSync(abs, 'utf8'))) : readFileSync(abs),
+        isText(abs) ? applyDivergences(target, rewrite(readFileSync(abs, 'utf8')), sink) : readFileSync(abs),
       );
     }
   }
@@ -81,8 +91,8 @@ function staleFiles(expected: ReadonlyMap<string, string | Buffer>): string[] {
   );
 }
 
-function generate() {
-  const expected = expectedFiles();
+function generate(sink?: string[]) {
+  const expected = expectedFiles(sink);
   for (const target of staleFiles(expected)) rmSync(join(ROOT, target), { force: true });
   for (const target of config.dropped) rmSync(join(ROOT, target), { force: true });
   for (const [target, content] of expected) {
@@ -198,7 +208,8 @@ function sync(tag: string, level: 'patch' | 'minor'): void {
     const abs = join(ROOT, file);
     writeFileSync(abs, readFileSync(abs, 'utf8').replaceAll(/"(void|@void\/md)": "[^"]+"/g, `"$1": "${version}"`));
   }
-  generate();
+  const staleEntries: string[] = [];
+  generate(staleEntries);
   for (const file of config.mechanical) {
     if (existsSync(join(UPSTREAM, SOURCE, file))) writeFileSync(join(ROOT, 'packages/preact/src', file), mechanicalSource(file));
   }
@@ -206,6 +217,7 @@ function sync(tag: string, level: 'patch' | 'minor'): void {
   console.log(`void-preact version: ${bumpRelease(level)}`);
   report();
   conflicts.forEach((file) => console.log(`  conflict: packages/preact/src/${file}`));
+  staleEntries.forEach((problem) => console.log(`  stale: ${problem}`));
 }
 
 /** What a reviewer must look at after a sync. */

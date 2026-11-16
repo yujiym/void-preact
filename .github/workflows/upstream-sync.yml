@@ -46,7 +46,7 @@ jobs:
           BREAKING: ${{ steps.target.outputs.breaking }}
         run: |
           set -o pipefail
-          node tools/port/run.ts sync "$TAG" "${BREAKING:+minor}" | tee sync-report.txt
+          node tools/port/run.ts sync "$TAG" "${BREAKING:+minor}" 2>&1 | tee sync-report.txt
       - if: steps.target.outputs.changed == 'true'
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
@@ -83,6 +83,10 @@ jobs:
               echo '**Conflicts need resolving by hand.** Fix the conflict markers in the listed files, then mark this PR ready for review.'
               echo
             fi
+            if grep -q '^  stale: ' sync-report.txt; then
+              echo '**Stale port config.** Update or remove the listed entries in `tools/port/config.ts`, run `pnpm port generate`, then mark this PR ready for review.'
+              echo
+            fi
             echo 'Comparison reports, diagnostics and the tested tarball are retained for 90 days in the dispatched CI run (behavior-comparison-<commit>). Release reports are attached permanently to the GitHub release.'
             echo
             echo '```'
@@ -93,7 +97,7 @@ jobs:
           if [ -n "$BREAKING" ]; then
             gh label create breaking --color B60205 --description 'Requires migration steps in the release notes' --force
             args+=(--label breaking --draft)
-          elif grep -q '^  conflict: ' sync-report.txt; then
+          elif grep -qE '^  (conflict|stale): ' sync-report.txt; then
             args+=(--draft)
           fi
           gh pr create --title "chore: sync upstream void to $TAG" --body-file pr-body.md "${args[@]}"
@@ -110,4 +114,14 @@ jobs:
         run: |
           title="Upstream sync failed for ${TAG:-the latest void release}"
           existing="$(gh issue list --state open --search "in:title \"$title\"" --json number --jq 'length')"
-          [ "$existing" != 0 ] || gh issue create --title "$title" --body "See $RUN_URL. The current release is not affected."
+          [ "$existing" = 0 ] || exit 0
+          {
+            echo "See $RUN_URL. The current release is not affected."
+            if [ -f sync-report.txt ] && grep -q '^Error' sync-report.txt; then
+              echo
+              echo '```'
+              grep '^Error' sync-report.txt | head -n 5
+              echo '```'
+            fi
+          } > issue-body.md
+          gh issue create --title "$title" --body-file issue-body.md

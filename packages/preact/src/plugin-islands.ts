@@ -141,8 +141,6 @@ export function islandsPlugin(
             const replacement = `import ${rawName} from ${specRaw}`;
             edits.push({ start: islandImport.start, end: islandImport.end, text: replacement });
 
-            // Generate wrapper that adds data-island attributes during SSR.
-            // Uses _h_island (imported below) to create elements.
             wrappers.push(
               `var ${name} = function ${name}(props) {` +
                 ` return _h_island("div", {` +
@@ -155,7 +153,6 @@ export function islandsPlugin(
           }
 
           if (wrappers.length > 0) {
-            // Prepend a Preact import for the wrapper functions
             return editIslandSource(code, edits, {
               prepend:
                 'import { h as _h_island } from "preact";\nimport { serializePageData as _serializeIslandProps } from "void/pages-server";\n',

@@ -679,7 +679,25 @@ function App({
       };
 
       if (NavigationFallback) {
+<<<<<<< void-preact
         next.shell.then((result) => {
+=======
+        let shellSettled = false;
+        let revealed = false;
+        const reveal = (settled: boolean) => {
+          if (revealed || activePendingNavigationId !== next.id) {
+            return;
+          }
+          revealed = true;
+          if (settled) {
+            startTransition(() => dispatch({ type: 'reveal', resource: next }));
+          } else {
+            dispatch({ type: 'reveal', resource: next });
+          }
+        };
+        void next.shell.then((result) => {
+          shellSettled = true;
+>>>>>>> new upstream
           if (result) {
             reveal();
           }
@@ -720,7 +738,7 @@ function App({
 
   useEffect(() => {
     engine.setPopStateHandler((url, options) => {
-      router.visit(url, options);
+      void router.visit(url, options);
     });
   }, [engine, router]);
 

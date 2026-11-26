@@ -23,6 +23,7 @@ const config: PortConfig = {
     'packages/react',
     'playground/react-pages',
     'test/browser-helpers.ts',
+    'test/fixture-dir.ts',
     'test/integration-helpers.ts',
     'test/island-css-build.ts',
     'test/island-page-browser.ts',
@@ -190,8 +191,8 @@ const config: PortConfig = {
     },
     {
       file: "packages/preact/test/unit/use-form.test.ts",
-      from: "import { createRoot, type Root, type RootOptions } from 'react-dom/client';",
-      to: "import { createRoot, type Root } from 'react-dom/client';",
+      from: "import type { Root, RootOptions } from 'react-dom/client';",
+      to: "import type { Root } from 'react-dom/client';",
       reason: "Preact has no React root options; the boundary behavior remains tested.",
     },
     {

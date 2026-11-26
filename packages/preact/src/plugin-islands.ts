@@ -19,11 +19,7 @@ import {
   findIslandImports,
   editIslandSource,
 } from 'void/pages-islands-plugin';
-<<<<<<< void-preact
-=======
 import type { IslandSourceEdit } from 'void/pages-islands-plugin';
-import { REACT_REFRESH_PREAMBLE } from './plugin-pages.ts';
->>>>>>> new upstream
 
 const COMPONENT_EXTENSIONS = ['.tsx', '.jsx', '.ts', '.js'];
 

@@ -1,21 +1,5 @@
-<<<<<<< void-preact
-import type { AnchorHTMLAttributes, ButtonHTMLAttributes, CSSProperties, RefObject, VNode } from 'preact';
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes, CSSProperties, HTMLAttributes, VNode } from 'preact';
 import { useCallback, useContext, useEffect, useMemo, useRef } from 'preact/hooks';
-=======
-import { useCallback, useContext, useEffect, useMemo, useRef } from 'preact/hooks';
-import type { JSX } from 'preact/hooks';
-import type {
-  MouseEvent,
-  MouseEventHandler,
-  HTMLAttributes,
-  FocusEventHandler,
-  TouchEventHandler,
-  TouchEvent,
-  FocusEvent,
-  AnchorHTMLAttributes,
-  ButtonHTMLAttributes,
-} from 'preact/hooks';
->>>>>>> new upstream
 import {
   handleLinkClick,
   linkActiveAttributes,
@@ -95,13 +79,8 @@ export function Link({
 
   const onClick = useCallback(
     (event: MouseEvent) => {
-<<<<<<< void-preact
       // oxlint-disable-next-line no-explicit-any -- anchor and button handler types do not merge
       onClickProp?.(event as any);
-=======
-      const callback: MouseEventHandler | undefined = onClickProp;
-      callback?.(event);
->>>>>>> new upstream
       handleLinkClick(event, router, link, {
         data,
         preserveScroll,
@@ -128,13 +107,8 @@ export function Link({
 
   const onMouseEnter = useCallback(
     (event: MouseEvent) => {
-<<<<<<< void-preact
       // oxlint-disable-next-line no-explicit-any -- anchor and button handler types do not merge
       onMouseEnterProp?.(event as any);
-=======
-      const callback: MouseEventHandler | undefined = onMouseEnterProp;
-      callback?.(event);
->>>>>>> new upstream
       if (event.defaultPrevented) {
         return;
       }
@@ -148,13 +122,8 @@ export function Link({
 
   const onMouseLeave = useCallback(
     (event: MouseEvent) => {
-<<<<<<< void-preact
       // oxlint-disable-next-line no-explicit-any -- anchor and button handler types do not merge
       onMouseLeaveProp?.(event as any);
-=======
-      const callback: MouseEventHandler | undefined = onMouseLeaveProp;
-      callback?.(event);
->>>>>>> new upstream
       if (hoverTimerRef.current) {
         clearTimeout(hoverTimerRef.current);
         hoverTimerRef.current = null;
@@ -165,13 +134,8 @@ export function Link({
 
   const onFocus = useCallback(
     (event: FocusEvent) => {
-<<<<<<< void-preact
       // oxlint-disable-next-line no-explicit-any -- anchor and button handler types do not merge
       onFocusProp?.(event as any);
-=======
-      const callback: FocusEventHandler | undefined = onFocusProp;
-      callback?.(event);
->>>>>>> new upstream
       if (!event.defaultPrevented) {
         doPrefetch();
       }
@@ -181,13 +145,8 @@ export function Link({
 
   const onMouseDown = useCallback(
     (event: MouseEvent) => {
-<<<<<<< void-preact
       // oxlint-disable-next-line no-explicit-any -- anchor and button handler types do not merge
       onMouseDownProp?.(event as any);
-=======
-      const callback: MouseEventHandler | undefined = onMouseDownProp;
-      callback?.(event);
->>>>>>> new upstream
       if (!event.defaultPrevented) {
         doPrefetch();
       }
@@ -197,13 +156,8 @@ export function Link({
 
   const onTouchStart = useCallback(
     (event: TouchEvent) => {
-<<<<<<< void-preact
       // oxlint-disable-next-line no-explicit-any -- anchor and button handler types do not merge
       onTouchStartProp?.(event as any);
-=======
-      const callback: TouchEventHandler | undefined = onTouchStartProp;
-      callback?.(event);
->>>>>>> new upstream
       if (!event.defaultPrevented) {
         doPrefetch();
       }
@@ -275,7 +229,7 @@ export function Link({
   const resolvedStyle = useMemo(
     () => ({
       touchAction: 'manipulation',
-      ...style,
+      ...(style as CSSProperties | undefined),
     }),
     [style],
   );

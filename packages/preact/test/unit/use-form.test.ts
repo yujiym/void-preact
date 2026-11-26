@@ -13,7 +13,7 @@ import {
 } from 'react';
 import type { ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
-import type { Root, RootOptions } from 'react-dom/client';
+import type { Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { VoidActionError } from 'void/pages-client';
 import type { VoidRouter } from 'void/pages-client';

@@ -1,12 +1,5 @@
-<<<<<<< void-preact
 import { createContext, type Context } from 'preact';
 import { idleNavigationState, type NavigationState, type VoidRouter } from 'void/pages-client';
-=======
-import { createContext } from 'preact/hooks';
-import type { Context } from 'preact/hooks';
-import { idleNavigationState } from 'void/pages-client';
-import type { NavigationState, VoidRouter } from 'void/pages-client';
->>>>>>> new upstream
 
 export const SharedContext: Context<Record<string, unknown> | null> = createContext<Record<
   string,

@@ -1,12 +1,6 @@
-<<<<<<< void-preact
 import { Fragment, h, type ComponentType, type VNode } from 'preact';
 import { Suspense } from 'preact/compat';
 import { renderToReadableStream } from 'preact-render-to-string/stream';
-=======
-import React from 'preact/hooks';
-import type { ComponentType } from 'preact/hooks';
-import { renderToReadableStream } from 'react-dom/server';
->>>>>>> new upstream
 import { createSsrRouter, idleNavigationState } from 'void/pages-client';
 import { renderBodyAttrs, renderHeadToString, renderHtmlAttrs } from 'void/pages-head';
 import type { PageObject } from 'void/pages-protocol';
@@ -37,11 +31,7 @@ function createPendingDeferred(): Promise<never> {
   return new Promise(() => {});
 }
 
-<<<<<<< void-preact
 function propsForRender(pageObj: PageObject): Record<string, unknown> {
-=======
-function propsForReactRender(pageObj: PageObject): PageObject['props'] {
->>>>>>> new upstream
   if (!pageObj.deferredKeys) {
     return pageObj.props;
   }

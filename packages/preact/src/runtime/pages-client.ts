@@ -18,13 +18,16 @@ import {
   refreshPage,
   pageBoundarySlots,
   showTerminalPageError,
-  type BoundaryManifest,
   toUrlString,
-  type PageNavigationResource,
-  type PageNavigationResult,
-  type NavigationState,
-  type VisitOptions,
-  type VoidRouter,
+} from 'void/pages-client';
+import type {
+  BoundaryManifest,
+  PageNavigationEngine,
+  PageNavigationResource,
+  PageNavigationResult,
+  NavigationState,
+  VisitOptions,
+  VoidRouter,
 } from 'void/pages-client';
 import type { CacheForResult, LinkPrefetchValue } from 'void/pages-prefetch';
 import type { PageObject } from 'void/pages-protocol';
@@ -44,8 +47,7 @@ import { SettledSuspense } from './settled-suspense.ts';
 // oxlint-disable-next-line no-explicit-any -- component props are narrowed by generated route types
 type ComponentModule = { default: ComponentType<any> };
 type PreactPageData = PageObject;
-type PreactPageComponent = ComponentType<Record<string, unknown>>;
-type PreactLayoutComponent = ComponentType<{ children?: ComponentChildren }>;
+type PreactComponent = ComponentModule['default'];
 
 export type PreactPagesConfig = Readonly<{
   boundaryManifest?: BoundaryManifest;
@@ -84,10 +86,10 @@ type DeferredResourceState =
  * Preact has no transitions, so a page is revealed only once its shell settled. `result` is set
  * when it does. Only NavigationFallback reveals earlier, and then the route suspends on `shell`.
  */
-type PreactPageResource = PageNavigationResource & {
-  shell: Promise<PageNavigationResult | undefined>;
-  result?: PageNavigationResult;
+type PreactPageResource = PageNavigationResource<PreactComponent> & {
+  result?: PreactNavigationResult;
 };
+type PreactNavigationResult = PageNavigationResult<PreactComponent>;
 
 type VisitSettler = {
   resolve(pageData: PreactPageData | undefined): void;
@@ -113,7 +115,7 @@ type AppAction =
   | { type: 'fail'; resource: PreactPageResource; location: string }
   | { type: 'abandon'; resource: PreactPageResource; location: string };
 
-const deferredState = new WeakMap<DeferredResource, DeferredResourceState>();
+const deferredState = new WeakMap<object, DeferredResourceState>();
 const viewTransitionWaiters = new Map<number, () => void>();
 const pendingVisitSettlers = new Map<number, VisitSettler>();
 const committedResources = new Set<number>();
@@ -128,6 +130,7 @@ let scheduleVisit:
   | ((url: string, options?: VisitOptions) => Promise<PreactPageData | undefined>)
   | null = null;
 
+// oxlint-disable-next-line quality/no-unknown-returns -- Route-specific deferred payloads travel through the engine without a shared value type.
 function createDeferredResource(): DeferredResource {
   let resolve!: (value: unknown) => void;
   let reject!: (error: unknown) => void;
@@ -140,26 +143,32 @@ function createDeferredResource(): DeferredResource {
   return promise;
 }
 
-function resolveDeferredResource(ref: unknown, value: unknown): unknown {
-  const state = deferredState.get(ref as DeferredResource);
+function resolveDeferredResource<T>(ref: T, value: unknown): T {
+  if (typeof ref !== 'object' || ref === null) {
+    return ref;
+  }
+  const state = deferredState.get(ref);
   if (state?.status === 'pending') {
     state.resolve(value);
-    deferredState.set(ref as DeferredResource, { status: 'resolved' });
+    deferredState.set(ref, { status: 'resolved' });
   }
   return ref;
 }
 
-function rejectDeferredResource(ref: unknown, error: string): unknown {
-  const state = deferredState.get(ref as DeferredResource);
+function rejectDeferredResource<T>(ref: T, error: string): T {
+  if (typeof ref !== 'object' || ref === null) {
+    return ref;
+  }
+  const state = deferredState.get(ref);
   if (state?.status === 'pending') {
     state.reject(new Error(error));
-    deferredState.set(ref as DeferredResource, { status: 'rejected' });
+    deferredState.set(ref, { status: 'rejected' });
   }
   return ref;
 }
 
 function isDeferredResourceLoading(ref: unknown): boolean {
-  return deferredState.get(ref as DeferredResource)?.status === 'pending';
+  return typeof ref === 'object' && ref !== null && deferredState.get(ref)?.status === 'pending';
 }
 
 function currentUrl(): string {
@@ -289,7 +298,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
   }
 }
 
-function createRouter(engine: Awaited<ReturnType<typeof createPageNavigationEngine>>): VoidRouter {
+function createRouter(engine: PageNavigationEngine<PreactComponent>): VoidRouter {
   const router: VoidRouter = {
     _hoverDelay: engine._hoverDelay,
     _prefetchDefaultStrategy: engine._prefetchDefaultStrategy,
@@ -334,7 +343,7 @@ function RouteResource({
   onFailure,
 }: {
   resource: PreactPageResource;
-  onCommit(resource: PreactPageResource, result: PageNavigationResult): void;
+  onCommit(resource: PreactPageResource, result: PreactNavigationResult): void;
   config: PreactPagesConfig;
   onFailure(url: string): void;
 }): ComponentChildren {
@@ -348,15 +357,18 @@ function RouteResource({
     return SettledSuspense.whenSettled(() => onCommit(resource, result));
   }, [onCommit, resource, result]);
 
-  const pageData = result.pageData as PreactPageData;
+  const pageData = result.pageData;
   const pageDataUrl = pageData.url ?? '';
   const routeParams = pageData.params ?? EMPTY_PARAMS;
   const routeRouter = useMemo(() => {
+    if (!outerRouter) {
+      throw new Error('pages: Missing router context for the page outlet.');
+    }
     const pageUrl = encodedPageUrl(pageDataUrl);
     return createRouterFacade(
-      outerRouter!,
+      outerRouter,
       () => {
-        const outerUrl = outerRouter!.url;
+        const outerUrl = outerRouter.url;
         const outerPath = outerUrl.pathname + outerUrl.search;
         if (outerPath === pageUrl) {
           return outerPath + outerUrl.hash;
@@ -375,7 +387,7 @@ function RouteResource({
     );
   }, [outerRouter, pageDataUrl, resource.fetchUrl, resource.hash, routeParams]);
 
-  const PageComponent = result.component as PreactPageComponent;
+  const PageComponent = result.component;
   const boundaries = pageBoundarySlots(
     config.boundaryManifest,
     pageData.component,
@@ -406,7 +418,7 @@ function RouteResource({
       );
   let element: ComponentChildren = h(PageComponent, pageData.props);
   for (let i = result.layouts.length - 1; i >= 0; i--) {
-    const Layout = result.layouts[i] as PreactLayoutComponent;
+    const Layout = result.layouts[i];
     element = h(Layout, null, wrap(element, i + 1));
   }
   element = wrap(element, 0);
@@ -455,15 +467,15 @@ function App({
   navigationFallback: NavigationFallback,
 }: {
   config: PreactPagesConfig;
-  engine: Awaited<ReturnType<typeof createPageNavigationEngine>>;
+  engine: PageNavigationEngine<PreactComponent>;
   router: VoidRouter;
   viewTransitions: boolean;
   navigationFallback?: ComponentType<{ initialPageData: PageObject }>;
 }): ComponentChildren {
-  const initialPageData = engine.initialPageData as PreactPageData;
+  const initialPageData = engine.initialPageData;
   const [hydrated, setHydrated] = useState(prerenderedUrl === null);
   const initialResource = useMemo<PreactPageResource>(() => {
-    const result: PageNavigationResult = {
+    const result: PreactNavigationResult = {
       pageData: initialPageData,
       component: engine.initialComponent,
       layouts: engine.initialLayouts,
@@ -481,7 +493,11 @@ function App({
       abort() {},
       async commit() {
         engine.commitInitialRender();
-        document.getElementById('app')!.setAttribute('data-hydrated', 'true');
+        const appEl = document.getElementById('app');
+        if (!appEl) {
+          throw new Error('pages: Missing #app element for Void Preact pages hydration.');
+        }
+        appEl.setAttribute('data-hydrated', 'true');
         if (prerenderedUrl !== null) {
           prerenderedUrl = null;
           setHydrated(true);
@@ -510,7 +526,7 @@ function App({
   }
 
   const finishNavigation = useCallback(
-    (resource: PreactPageResource, result: PageNavigationResult) => {
+    (resource: PreactPageResource, result: PreactNavigationResult) => {
       if (committedResources.has(resource.id)) {
         return;
       }
@@ -543,7 +559,7 @@ function App({
           }
           dispatch({ type: 'finish', resource, location: currentUrl() });
         })
-        .catch((error) => {
+        .catch((error: unknown) => {
           // The history write failed, so the address bar still shows the committed page.
           // End this visit and show that page again; a newer visit keeps its own state.
           const resolveViewTransition = viewTransitionWaiters.get(resource.id);
@@ -570,7 +586,7 @@ function App({
 
   const schedule = useCallback(
     (url: string, options: VisitOptions = {}) => {
-      const prepared = engine.prepareVisit(url, options) as PreactPageResource;
+      const prepared = engine.prepareVisit(url, options);
       const resolveOnData =
         prepared.options.resolveOn === 'data' || prepared.options._resolveOnShell;
       if (prepared.immediate) {
@@ -587,7 +603,7 @@ function App({
             dispatch({ type: 'finish', resource: prepared, location: currentUrl() });
             return result?.pageData;
           },
-          (error) => {
+          (error: unknown) => {
             if (activePendingNavigationId === prepared.id) {
               activePendingNavigationId = null;
             }
@@ -631,7 +647,7 @@ function App({
             }
             return result;
           },
-          (error) => {
+          (error: unknown) => {
             const resolveViewTransition = viewTransitionWaiters.get(prepared.id);
             if (resolveViewTransition) {
               viewTransitionWaiters.delete(prepared.id);
@@ -720,7 +736,7 @@ function App({
 
   useEffect(() => {
     engine.setPopStateHandler((url, options) => {
-      router.visit(url, options);
+      void router.visit(url, options);
     });
   }, [engine, router]);
 
@@ -805,7 +821,7 @@ export async function startPreactPages(config: PreactPagesConfig): Promise<Preac
     cacheVisitedPageData: config.cacheVisitedPageData,
     boundaryManifest: config.boundaryManifest,
     dev: config.dev,
-  }).catch((error) => {
+  }).catch((error: unknown) => {
     if (config.boundaryManifest && Object.keys(config.boundaryManifest.plans).length) {
       showTerminalPageError();
     }
@@ -821,7 +837,7 @@ export async function startPreactPages(config: PreactPagesConfig): Promise<Preac
 
   const isSsr = appEl.getAttribute('data-void-ssr') !== 'false';
   if (isSsr) {
-    prerenderedUrl = prerenderedRouteUrl(engine.initialPageData as PreactPageData);
+    prerenderedUrl = prerenderedRouteUrl(engine.initialPageData);
   }
   const app = h(App, {
     config,
@@ -861,7 +877,7 @@ export async function startPreactPages(config: PreactPagesConfig): Promise<Preac
           app,
         )
       : app;
-  const hasDeferred = Boolean((engine.initialPageData as PreactPageData).deferredKeys);
+  const hasDeferred = Boolean(engine.initialPageData.deferredKeys);
   // Preact renders synchronously, so the engine must be listening before the first commit.
   engine.start();
   if (!isSsr) {

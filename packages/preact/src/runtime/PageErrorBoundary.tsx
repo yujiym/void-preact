@@ -2,8 +2,10 @@ import { Component, type ComponentChildren, type ComponentType } from 'preact';
 import { Suspense, lazy } from 'preact/compat';
 import { clientPageError, type ClientPageBoundary, type ErrorPageProps } from 'void/pages-client';
 
+type PreactPageBoundary = ClientPageBoundary<ComponentType<ErrorPageProps>>;
+
 type Props = {
-  boundary: ClientPageBoundary;
+  boundary: PreactPageBoundary;
   generation: number;
   dev?: boolean;
   children?: ComponentChildren;
@@ -13,10 +15,10 @@ type Props = {
 type State = { generation: number; error: unknown; failed: boolean };
 
 const fallbacks = new Map<string, ComponentType<ErrorPageProps>>();
-function fallbackFor(boundary: ClientPageBoundary) {
+function fallbackFor(boundary: PreactPageBoundary) {
   let fallback = fallbacks.get(boundary.id);
   if (!fallback) {
-    fallback = lazy(boundary.load as () => Promise<{ default: ComponentType<ErrorPageProps> }>);
+    fallback = lazy(boundary.load);
     fallbacks.set(boundary.id, fallback);
   }
   return fallback;

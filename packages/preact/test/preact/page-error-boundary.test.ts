@@ -1,12 +1,14 @@
 // @vitest-environment happy-dom
-import { Component, h, render, type ComponentChildren } from 'preact';
+import { Component, h, render, type ComponentChildren, type ComponentType } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, expect, it, vi } from 'vite-plus/test';
 import type { ClientPageBoundary, ErrorPageProps } from 'void/pages-client';
 import { PageErrorBoundary } from '../../src/runtime/PageErrorBoundary.tsx';
 
 let nextId = 0;
-function boundaryWith(fallback: (props: ErrorPageProps) => ComponentChildren): ClientPageBoundary {
+function boundaryWith(
+  fallback: (props: ErrorPageProps) => ComponentChildren,
+): ClientPageBoundary<ComponentType<ErrorPageProps>> {
   const id = `error-${++nextId}`;
   return { id, key: id, depth: 0, load: async () => ({ default: fallback }) };
 }

@@ -11,3 +11,4 @@ __tmp_*
 .audit/
 packages/preact/README.md
 packages/preact/LICENSE
+**/.tmp-*

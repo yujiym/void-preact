@@ -18,8 +18,12 @@ import {
   ISLANDS_CLIENT_ENTRY_ID,
   findIslandImports,
   editIslandSource,
-  type IslandSourceEdit,
 } from 'void/pages-islands-plugin';
+<<<<<<< void-preact
+=======
+import type { IslandSourceEdit } from 'void/pages-islands-plugin';
+import { REACT_REFRESH_PREAMBLE } from './plugin-pages.ts';
+>>>>>>> new upstream
 
 const COMPONENT_EXTENSIONS = ['.tsx', '.jsx', '.ts', '.js'];
 
@@ -50,6 +54,7 @@ export function islandsPlugin(
       },
 
       configureServer(server) {
+        islandManifest.configureServer(server, pagesDir);
         watchPagesForRescan(server, pagesDir, root, (scan: PageScanResult) => {
           pageScan = scan;
         });
@@ -80,7 +85,7 @@ export function islandsPlugin(
       },
 
       load: {
-        // eslint-disable-next-line no-control-regex -- Vite virtual module null-byte prefix
+        // Vite virtual module null-byte prefix
         filter: { id: /^\0virtual:void-islands-(renderer|client)$/ },
         handler(id) {
           if (id === '\0' + ISLANDS_RENDERER_ID) {

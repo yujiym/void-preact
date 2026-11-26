@@ -1,3 +1,4 @@
+<<<<<<< void-preact
 import type { ComponentChildren, FormHTMLAttributes, VNode } from 'preact';
 import { useCallback } from 'preact/hooks';
 import {
@@ -9,6 +10,12 @@ import {
   type VoidActionError,
 } from 'void/pages-client';
 import './form-action.tsx';
+=======
+import { useCallback } from 'preact/hooks';
+import type { FormEvent, FormHTMLAttributes, ReactElement, ReactNode } from 'preact/hooks';
+import { formErrorMessage, formRetryMessage, formSubmissionBlocked } from 'void/pages-client';
+import type { FormModel, FormMethod, VoidActionError } from 'void/pages-client';
+>>>>>>> new upstream
 
 export type FormProps = Omit<
   FormHTMLAttributes<HTMLFormElement>,

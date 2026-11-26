@@ -2,7 +2,8 @@ import preact from '@preact/preset-vite';
 import type { Plugin, PluginOption } from 'vite';
 import { resolvePagesDir } from 'void/pages';
 import { islandsPlugin } from './plugin-islands.ts';
-import { pagesPlugin, type PrefetchConfig } from './plugin-pages.ts';
+import { pagesPlugin } from './plugin-pages.ts';
+import type { PrefetchConfig } from './plugin-pages.ts';
 
 export type VoidPreactOptions = Readonly<{
   preact?: Parameters<typeof preact>[0];

@@ -30,18 +30,9 @@ export function voidPreact(options?: VoidPreactOptions): Array<PluginOption | Pl
   const root = process.cwd();
   const pagesDir = resolvePagesDir(root);
   return [
-<<<<<<< void-preact
     preact(options?.preact),
-    pagesPlugin(pagesDir, {
-      root,
-      viewTransitions: options?.viewTransitions,
-      prefetch: options?.prefetch,
-    }),
-=======
-    ...react(options?.react),
     // Spread so adapter options the pages plugin owns reach it without per-option glue.
     pagesPlugin(pagesDir, { ...options, root }),
->>>>>>> new upstream
     ...islandsPlugin(pagesDir, { root }),
     reactAdapterMarker(),
   ];

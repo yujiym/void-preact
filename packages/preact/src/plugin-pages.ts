@@ -43,6 +43,7 @@ export function pagesPlugin(pagesDir: string, options?: PagesPluginOptions): Plu
   return createPagesPlugin(pagesDir, {
     name: 'void-preact:pages',
     root,
+    deployRecovery: options?.deployRecovery,
     generateRenderer(scan) {
       return generateRendererModule(scan, pagesDir);
     },

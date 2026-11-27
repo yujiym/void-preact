@@ -9,6 +9,7 @@ export type VoidPreactOptions = Readonly<{
   preact?: Parameters<typeof preact>[0];
   viewTransitions?: boolean;
   prefetch?: PrefetchConfig;
+  deployRecovery?: boolean;
 }>;
 
 /**
@@ -30,11 +31,8 @@ export function voidPreact(options?: VoidPreactOptions): Array<PluginOption | Pl
   const pagesDir = resolvePagesDir(root);
   return [
     preact(options?.preact),
-    pagesPlugin(pagesDir, {
-      root,
-      viewTransitions: options?.viewTransitions,
-      prefetch: options?.prefetch,
-    }),
+    // Spread so adapter options the pages plugin owns reach it without per-option glue.
+    pagesPlugin(pagesDir, { ...options, root }),
     ...islandsPlugin(pagesDir, { root }),
     reactAdapterMarker(),
   ];

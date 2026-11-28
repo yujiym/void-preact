@@ -243,8 +243,8 @@ importers:
         specifier: ^1.5.0
         version: 1.5.0(@types/node@24.19.2)(@vitest/ui@5.1.0)(esbuild@0.28.2)(happy-dom@21.0.4)(jiti@2.7.0)(playwright@1.64.1)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1)
       void:
-        specifier: 1.12.1
-        version: 1.12.1(@types/node@24.19.2)(@void/md@1.12.1)(@voidzero-dev/vite-plus-core@1.5.0(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1))(arktype@2.2.9)(kysely@0.29.8)(react-dom@test+fixtures+react-stub+react-dom)(react@test+fixtures+react-stub+react)(valibot@1.5.0(typescript@6.0.3))(vitest@5.1.0)(workerd@1.20261123.1)(zod@4.6.7)
+        specifier: 1.12.2
+        version: 1.12.2(@types/node@24.19.2)(@void/md@1.12.2)(@voidzero-dev/vite-plus-core@1.5.0(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1))(arktype@2.2.9)(kysely@0.29.8)(react-dom@test+fixtures+react-stub+react-dom)(react@test+fixtures+react-stub+react)(valibot@1.5.0(typescript@6.0.3))(vitest@5.1.0)(workerd@1.20261123.1)(zod@4.6.7)
 
   playground/preact-pages:
     dependencies:
@@ -274,8 +274,8 @@ importers:
         specifier: ^1.5.0
         version: 1.5.0(@types/node@24.19.2)(@vitest/ui@5.1.0)(esbuild@0.28.2)(happy-dom@21.0.4)(jiti@2.7.0)(playwright@1.64.1)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1)
       void:
-        specifier: 1.12.1
-        version: 1.12.1(@types/node@24.19.2)(@void/md@1.12.1)(@voidzero-dev/vite-plus-core@1.5.0(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1))(arktype@2.2.9)(kysely@0.29.8)(react-dom@test+fixtures+react-stub+react-dom)(react@test+fixtures+react-stub+react)(valibot@1.5.0(typescript@6.0.3))(vitest@5.1.0)(workerd@1.20261123.1)(zod@4.6.7)
+        specifier: 1.12.2
+        version: 1.12.2(@types/node@24.19.2)(@void/md@1.12.2)(@voidzero-dev/vite-plus-core@1.5.0(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1))(arktype@2.2.9)(kysely@0.29.8)(react-dom@test+fixtures+react-stub+react-dom)(react@test+fixtures+react-stub+react)(valibot@1.5.0(typescript@6.0.3))(vitest@5.1.0)(workerd@1.20261123.1)(zod@4.6.7)
       void-preact:
         specifier: workspace:*
         version: link:../../packages/preact
@@ -283,14 +283,14 @@ importers:
   test/fixtures/md-host:
     dependencies:
       '@void/md':
-        specifier: 1.12.1
-        version: 1.12.1(@types/markdown-it@14.2.0)(@voidzero-dev/vite-plus-core@1.5.0(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1))(void@1.12.1)
+        specifier: 1.12.2
+        version: 1.12.2(@types/markdown-it@14.2.0)(@voidzero-dev/vite-plus-core@1.5.0(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1))(void@1.12.2)
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@^1.5.0
         version: '@voidzero-dev/vite-plus-core@1.5.0(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1)'
       void:
-        specifier: 1.12.1
-        version: 1.12.1(@types/node@24.19.2)(@void/md@1.12.1)(@voidzero-dev/vite-plus-core@1.5.0(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1))(arktype@2.2.9)(kysely@0.29.8)(react-dom@test+fixtures+react-stub+react-dom)(react@test+fixtures+react-stub+react)(valibot@1.5.0(typescript@6.0.3))(vitest@5.1.0)(workerd@1.20261123.1)(zod@4.6.7)
+        specifier: 1.12.2
+        version: 1.12.2(@types/node@24.19.2)(@void/md@1.12.2)(@voidzero-dev/vite-plus-core@1.5.0(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1))(arktype@2.2.9)(kysely@0.29.8)(react-dom@test+fixtures+react-stub+react-dom)(react@test+fixtures+react-stub+react)(valibot@1.5.0(typescript@6.0.3))(vitest@5.1.0)(workerd@1.20261123.1)(zod@4.6.7)
 
   test/fixtures/react-stub/react:
     dependencies:
@@ -1736,26 +1736,26 @@ packages:
   '@vitest/utils@5.1.0':
     resolution: {integrity: sha512-V+qgCwkvVw+s1t1S5TaoBHsLi5Sz/YmohCMoOu0mZ8ZQst2bKhRYARAQucWpVg8D0mv0x5MHcWXY5QdOsoiGBQ==}
 
-  '@void/deploy-cloudflare@1.12.1':
-    resolution: {integrity: sha512-6LDAtNMTGlEUcUrGG2oV7jOVEC1xgdwWrIPtzEOvKvheBaeuhLBPiwPZtNBkwZY/JXSiXKwlq5lS4G1Wi+JGiQ==}
+  '@void/deploy-cloudflare@1.12.2':
+    resolution: {integrity: sha512-e7b2Fssd2JWew5qwtgxpzBiWAxBpWeJl3WNkSJ4wqEjWVkh+dUgkIV9yAHDWA9C4+GT503s0Bbs8okmNsq8Rjg==}
 
-  '@void/deploy-core@1.12.1':
-    resolution: {integrity: sha512-i1220tIRfUBlOjraY2pnexFBRAQ5cGnrVXAlVXe9fld1nJxHkjkAE5VRzVKXn5FPdU0rbbRdDr1gMb5LPt1S6Q==}
+  '@void/deploy-core@1.12.2':
+    resolution: {integrity: sha512-VP9PKF6nZeCg2mB6RyaHanflRTThb4YD23Yjh/MdhkGOS72Su5Z9iS/D9NkDjaZeMOXmjt+hn2NuaXdMgV/PdQ==}
 
-  '@void/edge@1.12.1':
-    resolution: {integrity: sha512-3QwgOcLFmh1Uw6TmH6nw2H/+3S/Zs+gkngOXeuhC6Fs+SglJFIaILqynn0cr3K0e0Rv7Ea4GW/2v7sFy3+Buxg==}
+  '@void/edge@1.12.2':
+    resolution: {integrity: sha512-R/kqFosWYVZBS1SmJ88XJYGN5pRMPHaFkM1xwjXQ+Cfv6SY96ET5ibBHVzlXqGDNY7eyrNTy6YiHtAw4YvZMhg==}
 
-  '@void/isr@1.12.1':
-    resolution: {integrity: sha512-QWE20/BtdyOnMQYcVlz4h5OwMfb3dVuw7mYP5BQ9yd7DonTEHh/KkZVW+5lbMkvXeBss0WyN/gDWEH/Jt55hzA==}
+  '@void/isr@1.12.2':
+    resolution: {integrity: sha512-Nyl4H+EuHQP+3lc0tWr6F8u3ABXlE2/jbhQVKPzuD5gCv2dmAmruVc0GvnWZ4pRGfdVOKTnMwh0sMK/wY1gFXg==}
 
-  '@void/md@1.12.1':
-    resolution: {integrity: sha512-0uktlg7gp6Cp1p4POV+imoiVvQr0SYHjz3/n2pjg7tisREcZPcfzPEd+mhiUjzj4RiSW+yGdEUUbuS2VnIVj6Q==}
+  '@void/md@1.12.2':
+    resolution: {integrity: sha512-yzVeGi56r8rJuqknPCnvSgodvEsYaqvgGt+deo3wZjqMtPNy05qZg57eitsaGrBA5ZKy1ryl1ZzR+xxbbsQDxQ==}
     peerDependencies:
       vite: ^8.0.0
-      void: 1.12.1
+      void: 1.12.2
 
-  '@void/platform@1.12.1':
-    resolution: {integrity: sha512-PCEWXVciBPb1vQr5a92fUDZl7ik8vh8QKeMF9w3lejLHOhMytkC0TpUHK5I5YXf/p5iQ82U+YdwOrUrAoa1Zjw==}
+  '@void/platform@1.12.2':
+    resolution: {integrity: sha512-uJH2NqwqkZTu7lTKQMj2mMVs6Zn/r2YZ2wFnpEyIRFxPVg0Vr4eNH/1vZHvtwkEf6IT/MhtxGBMfRGLEA3p5WA==}
 
   '@voidzero-dev/vite-plus-core@1.5.0':
     resolution: {integrity: sha512-Xq0tVwnkq9IYgD7Zgd9Ih8uvX84HOJlgKh4PVNpcT4IZ1AfGwNklExhFHLIc0EVt9mmWvTebuCEoHo39Xyer0g==}
@@ -3059,12 +3059,12 @@ packages:
       jsdom:
         optional: true
 
-  void@1.12.1:
-    resolution: {integrity: sha512-zpw2f6h9N8Z0o1nRTFFuZC7gB1o9dZzJ7YqPn6OmG2I0hvLRQ4us8WYuSfBqsXIdVykewNW4FOMAmrNRw2idQA==}
+  void@1.12.2:
+    resolution: {integrity: sha512-Eha5fa4cCKkYqipCcgneZdbGEQcZOiruvG9xqcEOa8LDyTMb8SoFOMYwwkp+doBJjRRA5pnqDT7/ZNdY7WJ8xw==}
     engines: {node: ^24.22.0 || >=26.12.0}
     hasBin: true
     peerDependencies:
-      '@void/md': 1.12.1
+      '@void/md': 1.12.2
       arktype: '>=2.0.0'
       valibot: '>=1.0.0-beta.7'
       vite: ^8.0.0
@@ -4193,23 +4193,23 @@ snapshots:
       convert-source-map: 2.0.0
       tinyrainbow: 3.2.0
 
-  '@void/deploy-cloudflare@1.12.1':
+  '@void/deploy-cloudflare@1.12.2':
     dependencies:
-      '@void/deploy-core': 1.12.1
+      '@void/deploy-core': 1.12.2
       jsonc-parser: 3.3.1
 
-  '@void/deploy-core@1.12.1': {}
+  '@void/deploy-core@1.12.2': {}
 
-  '@void/edge@1.12.1':
+  '@void/edge@1.12.2':
     dependencies:
-      '@void/deploy-core': 1.12.1
+      '@void/deploy-core': 1.12.2
 
-  '@void/isr@1.12.1':
+  '@void/isr@1.12.2':
     dependencies:
       '@cloudflare/workers-types': 5.20261125.1
-      '@void/edge': 1.12.1
+      '@void/edge': 1.12.2
 
-  '@void/md@1.12.1(@types/markdown-it@14.2.0)(@voidzero-dev/vite-plus-core@1.5.0(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1))(void@1.12.1)':
+  '@void/md@1.12.2(@types/markdown-it@14.2.0)(@voidzero-dev/vite-plus-core@1.5.0(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1))(void@1.12.2)':
     dependencies:
       '@pierre/highlights': 0.5.2
       gray-matter: 4.0.3
@@ -4223,13 +4223,13 @@ snapshots:
       pathslash: 0.1.0
       tinyglobby: 0.2.17
       vite: '@voidzero-dev/vite-plus-core@1.5.0(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1)'
-      void: 1.12.1(@types/node@24.19.2)(@void/md@1.12.1)(@voidzero-dev/vite-plus-core@1.5.0(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1))(arktype@2.2.9)(kysely@0.29.8)(react-dom@test+fixtures+react-stub+react-dom)(react@test+fixtures+react-stub+react)(valibot@1.5.0(typescript@6.0.3))(vitest@5.1.0)(workerd@1.20261123.1)(zod@4.6.7)
+      void: 1.12.2(@types/node@24.19.2)(@void/md@1.12.2)(@voidzero-dev/vite-plus-core@1.5.0(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1))(arktype@2.2.9)(kysely@0.29.8)(react-dom@test+fixtures+react-stub+react-dom)(react@test+fixtures+react-stub+react)(valibot@1.5.0(typescript@6.0.3))(vitest@5.1.0)(workerd@1.20261123.1)(zod@4.6.7)
     transitivePeerDependencies:
       - '@types/markdown-it'
 
-  '@void/platform@1.12.1':
+  '@void/platform@1.12.2':
     dependencies:
-      '@void/deploy-core': 1.12.1
+      '@void/deploy-core': 1.12.2
       pathslash: 0.1.0
 
   '@voidzero-dev/vite-plus-core@1.5.0(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1)':
@@ -5305,7 +5305,7 @@ snapshots:
     transitivePeerDependencies:
       - msw
 
-  void@1.12.1(@types/node@24.19.2)(@void/md@1.12.1)(@voidzero-dev/vite-plus-core@1.5.0(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1))(arktype@2.2.9)(kysely@0.29.8)(react-dom@test+fixtures+react-stub+react-dom)(react@test+fixtures+react-stub+react)(valibot@1.5.0(typescript@6.0.3))(vitest@5.1.0)(workerd@1.20261123.1)(zod@4.6.7):
+  void@1.12.2(@types/node@24.19.2)(@void/md@1.12.2)(@voidzero-dev/vite-plus-core@1.5.0(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1))(arktype@2.2.9)(kysely@0.29.8)(react-dom@test+fixtures+react-stub+react-dom)(react@test+fixtures+react-stub+react)(valibot@1.5.0(typescript@6.0.3))(vitest@5.1.0)(workerd@1.20261123.1)(zod@4.6.7):
     dependencies:
       '@cloudflare/build-output-utils': 1.0.0-rc.4
       '@cloudflare/config': 1.0.0-rc.4
@@ -5315,11 +5315,11 @@ snapshots:
       '@cloudflare/workers-types': 5.20261125.1
       '@cloudflare/workers-utils': 0.57.0(vitest@5.1.0)
       '@napi-rs/keyring': 2.1.2
-      '@void/deploy-cloudflare': 1.12.1
-      '@void/deploy-core': 1.12.1
-      '@void/edge': 1.12.1
-      '@void/isr': 1.12.1
-      '@void/platform': 1.12.1
+      '@void/deploy-cloudflare': 1.12.2
+      '@void/deploy-core': 1.12.2
+      '@void/edge': 1.12.2
+      '@void/isr': 1.12.2
+      '@void/platform': 1.12.2
       better-auth: 1.7.28(drizzle-kit@0.31.11)(drizzle-orm@0.45.4(@cloudflare/workers-types@5.20261125.1)(better-sqlite3@13.2.0)(kysely@0.29.8)(mysql2@3.24.6(@types/node@24.19.2))(pg@8.23.1))(mysql2@3.24.6(@types/node@24.19.2))(pg@8.23.1)(react-dom@test+fixtures+react-stub+react-dom)(react@test+fixtures+react-stub+react)(vitest@5.1.0)
       better-sqlite3: 13.2.0
       blake3-jit: 1.1.1
@@ -5350,7 +5350,7 @@ snapshots:
       vite: '@voidzero-dev/vite-plus-core@1.5.0(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1)'
       yaml: 2.9.1
     optionalDependencies:
-      '@void/md': 1.12.1(@types/markdown-it@14.2.0)(@voidzero-dev/vite-plus-core@1.5.0(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1))(void@1.12.1)
+      '@void/md': 1.12.2(@types/markdown-it@14.2.0)(@voidzero-dev/vite-plus-core@1.5.0(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1))(void@1.12.2)
       arktype: 2.2.9
       valibot: 1.5.0(typescript@6.0.3)
       zod: 4.6.7
